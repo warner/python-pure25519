@@ -17,6 +17,14 @@ class Test(Command):
         result = runner.run(test)
         sys.exit(not result.wasSuccessful())
 
+class KnownAnswerTest(Test):
+    description = "run known-answer-tests"
+    def run(self):
+        test = unittest.defaultTestLoader.loadTestsFromName("ed25519.test_ed25519_kat")
+        runner = unittest.TextTestRunner(verbosity=2)
+        result = runner.run(test)
+        sys.exit(not result.wasSuccessful())
+
 class Speed(Test):
     description = "run benchmark suite"
     def run(self):
@@ -61,5 +69,5 @@ setup(name="pure25519",
       url="https://github.com/warner/python-pure25519",
       packages=["ed25519"],
       package_dir={"ed25519": "ed25519"},
-      cmdclass={"test": Test, "speed": Speed},
+      cmdclass={"test": Test, "speed": Speed, "test_kat": KnownAnswerTest},
       )

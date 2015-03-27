@@ -189,8 +189,10 @@ def checkvalid(s, m, pk):
     S = decodeint(s[b//8:b//4]) # 32
     h = Hint(encodepoint(R) + pk + m)
     v1 = scalarmult(B,S)
-#  v2 = edwards(R,scalarmult(A,h))
-    v2 = pt_unxform(xpt_add(pt_xform(R), pt_xform(scalarmult(A, h))))
+    #v2 = edwards(R,scalarmult(A,h))
+    Ah_xpt = xpt_mult(pt_xform(A), h)
+    R_Ah_xpt = xpt_add(pt_xform(R), Ah_xpt)
+    v2 = pt_unxform(R_Ah_xpt)
     return v1==v2
 
 

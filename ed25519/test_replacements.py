@@ -12,7 +12,7 @@ else:
     def bit(h, i):
         return (h[i//8] >> (i%8)) & 1
 
-b = 256
+b = 256 # =32*8
 def H(m):
     return hashlib.sha512(m).digest()
 
@@ -33,3 +33,36 @@ class Compare(unittest.TestCase):
         for i in range(200):
             m = str(i).encode("ascii")
             self.assertEqual(self.orig_Hint(m), self.new_Hint(m))
+
+    def orig_decodepoint_sum(self, s):
+        # the original. 802us.
+        y = sum(2**i * bit(s,i) for i in range(0,b-1))
+        #print("%064x" % y)
+        return y
+
+    def new_decodepoint_sum_1(self, s):
+        # the range(0,b-1) means we don't use the MSB of the last byte, so
+        # the high-order bit of the int will be zero. In this form, we clamp
+        # the int. 337us
+        unclamped = int(hexlify(s[:32][::-1]), 16)
+        clamp = (1 << 255) - 1
+        clamped = unclamped & clamp
+        return clamped
+
+    def new_decodepoint_sum_2(self, s):
+        # In this form, we remap the last byte before conversion. 340us
+        s = s[:32]
+        clamped_byte = unhexlify("%02x" % (int(hexlify(s[-2:]), 16) & 0x7f))
+        clamped_s = s[:-1] + clamped_byte
+        clamped = int(hexlify(clamped_s[::-1]), 16)
+        #print("%064x" % clamped)
+        return clamped
+
+    def test_decodepoint_sum(self):
+        for i in range(200):
+            #print()
+            s = H(str(i).encode("ascii"))[:32]
+            self.assertEqual(self.orig_decodepoint_sum(s),
+                             self.new_decodepoint_sum_1(s))
+            self.assertEqual(self.new_decodepoint_sum_1(s),
+                             self.new_decodepoint_sum_2(s))

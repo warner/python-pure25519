@@ -189,7 +189,9 @@ def Ed25519():
     export["decodeint"] = decodeint
 
     def decodepoint(s):
-        y = sum(2**i * bit(s,i) for i in range(0,b-1))
+        unclamped = int(binascii.hexlify(s[:32][::-1]), 16)
+        clamp = (1 << 255) - 1
+        y = unclamped & clamp
         x = xrecover(y)
         if x & 1 != bit(s,b-1): x = q-x
         P = [x,y]

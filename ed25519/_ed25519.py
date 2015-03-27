@@ -22,9 +22,9 @@ def open(sigmsg, vk):
     msg = sigmsg[64:]
     try:
         _raw.ed25519_verify(vk, sig, msg)
-    except ValueError, e:
+    except ValueError as e:
         raise BadSignatureError(e)
-    except Exception, e:
+    except Exception as e:
         if str(e) == "decoding point that is not on curve":
             raise BadSignatureError(e)
         raise

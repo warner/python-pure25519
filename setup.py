@@ -108,11 +108,11 @@ class Speed(Test):
 
 
         S1 = "from ed25519.pure_ed25519 import export"
-        S2 = "s=export['publickey']('')"
+        S2 = "s=export['publickey'](b'')"
         S3 = "p=export['decodepoint'](s)"
-        S4 = "i = '\xff'*32"
+        S4 = r"i = b'\xff'*32"
         S5 = "si=export['decodeint'](i)"
-        S6 = "h=export['Hint']('')"
+        S6 = "h=export['Hint'](b'')"
         S7 = "Ah=export['scalarmult'](p,h)"
         S8 = "Ahx=export['pt_xform'](Ah)"
         S9 = "export['xpt_add'](Ahx,Ahx)"

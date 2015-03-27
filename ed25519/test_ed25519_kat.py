@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from binascii import hexlify, unhexlify
 import ed25519
@@ -9,7 +10,7 @@ class KnownAnswerTests(unittest.TestCase):
         # different key format than the one used by NaCl.
         lines = list(open("ed25519/kat-ed25519.txt"))
         for i,line in enumerate(lines):
-            if not i%50: print "%d/%d" % (i, len(lines))
+            if not i%50: print("%d/%d" % (i, len(lines)))
             x = line.split(":")
             A,B,C,D = [unhexlify(i) for i in x[:4]]
             # A[:32] is the 32 byte seed (the entropy input to H())

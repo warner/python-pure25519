@@ -77,3 +77,33 @@ class Compare(unittest.TestCase):
             s = H(str(i).encode("ascii"))[:32]
             self.assertEqual(self.orig_decodeint(s),
                              self.new_decodeint(s))
+
+    def orig_signature_sum(self, sk):
+        h = H(sk)
+        a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
+        #print("%064x" % a)
+        return a
+
+    def new_signature_sum(self, sk):
+        h = H(sk)
+        unclamped = int(hexlify(h[:32][::-1]), 16)
+        # top byte is      01xxxxxx
+        # middle bytes are xxxxxxxx
+        # bottom byte is   xxxxx000
+        top_reset_clamp = (0x40 << (31*8)) - 1
+        bottom_reset_clamp = ((1 << (32*8)) - 1) ^ 0x7
+        set_clamp = 0x40 << (31*8)
+        clamped = (unclamped & top_reset_clamp & bottom_reset_clamp) | set_clamp
+        #print("%064x" % unclamped)
+        #print("%064x" % set_clamp)
+        #print("%064x" % top_reset_clamp)
+        #print("%064x" % bottom_reset_clamp)
+        #print("%064x" % clamped)
+        return clamped
+
+    def test_signature_sum(self):
+        for i in range(200):
+            #print()
+            sk = H(str(i).encode("ascii"))[:32]
+            self.assertEqual(self.orig_signature_sum(sk),
+                             self.new_signature_sum(sk))

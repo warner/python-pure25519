@@ -120,6 +120,8 @@ class Speed(Test):
         #  publickey()
         #  signature()
 
+        # pure_ed25519.sign() is doing an extra publickey(), doubles the cost
+
         S1 = "from ed25519.pure_ed25519 import export"
         S2 = "s=export['publickey'](b'')"
         S3 = "p=export['decodepoint'](s)"

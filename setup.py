@@ -47,19 +47,20 @@ class Speed(Test):
                 return "%.2fms" % (t*1e3)
             return "%.2fus" % (t*1e6)
 
+        def p(name, setup_statements, statements):
+            t = sorted([do(setup_statements, statements) for i in range(3)])
+            print("%12s: %s (%s)" % (name,
+                                     abbrev(min(t)),
+                                     " ".join([abbrev(s) for s in t])))
+
         S1 = "import ed25519; msg=b'hello world'"
         S2 = "sk,vk = ed25519.create_keypair()"
         S3 = "sig = sk.sign(msg)"
         S4 = "vk.verify(sig, msg)"
 
-        generate = do([S1], S2)
-        print("generate: %s" % abbrev(generate))
-
-        sign = do([S1, S2], S3)
-        print("sign: %s" % abbrev(sign))
-
-        verify = do([S1, S2, S3], S4)
-        print("verify: %s" % abbrev(verify))
+        p("generate", [S1], S2)
+        p("sign", [S1, S2], S3)
+        p("verify", [S1, S2, S3], S4)
 
         # speedup opportunities:
         #  bits-to-int (implemented with sum(2**i*bit(h,i) for in in range())
@@ -118,10 +119,6 @@ class Speed(Test):
         S10 = "export['pt_unxform'](Ahx)"
         S11 = "S=export['encodepoint'](p)"
         S12 = "export['xrecover'](export['Bx'])"
-
-        def p(name, setup_statements, statements):
-            t = sorted([do(setup_statements, statements) for i in range(3)])
-            print("%12s:" % name, abbrev(min(t)), ",", *[abbrev(s) for s in t])
 
         p("decodepoint", [S1, S2], S3)
         p("decodeint", [S1, S4], S5)

@@ -122,20 +122,20 @@ class Speed(Test):
 
         # pure_ed25519.sign() is doing an extra publickey(), doubles the cost
 
-        S1 = "from ed25519.pure_ed25519 import export"
-        S2 = "s=export['publickey'](b'')"
-        S3 = "p=export['decodepoint'](s)"
+        S1 = "from ed25519 import pure_ed25519 as P"
+        S2 = "s=P.publickey(b'')"
+        S3 = "p=P.decodepoint(s)"
         S4 = r"i = b'\xff'*32"
-        S5 = "si=export['decodeint'](i)"
-        S6 = "h=export['Hint'](b'')"
-        S7 = "Ah=export['scalarmult'](p,h)"
-        S8 = "Ahx=export['pt_xform'](Ah)"
-        S9 = "export['xpt_add'](Ahx,Ahx)"
-        S10 = "export['pt_unxform'](Ahx)"
-        S11 = "S=export['encodepoint'](p)"
-        S12 = "export['xrecover'](export['Bx'])"
-        S13 = "export['isoncurve'](p)"
-        S14 = "export['encodeint'](si)"
+        S5 = "si=P.decodeint(i)"
+        S6 = "h=P.Hint(b'')"
+        S7 = "Ah=P.scalarmult(p,h)"
+        S8 = "Ahx=P.pt_xform(Ah)"
+        S9 = "P.xpt_add(Ahx,Ahx)"
+        S10 = "P.pt_unxform(Ahx)"
+        S11 = "S=P.encodepoint(p)"
+        S12 = "P.xrecover(P.Bx)"
+        S13 = "P.isoncurve(p)"
+        S14 = "P.encodeint(si)"
 
         p("decodepoint", [S1, S2], S3)
         p("decodeint", [S1, S4], S5)

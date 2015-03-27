@@ -36,7 +36,7 @@ class Speed(Test):
             for i in range(1, 10):
                 number = 10**i
                 x = t.timeit(number)
-                if x >= 0.2:
+                if x >= 1.0:
                     break
             return x / number
 
@@ -53,12 +53,85 @@ class Speed(Test):
         S4 = "vk.verify(sig, msg)"
 
         generate = do([S1], S2)
-        sign = do([S1, S2], S3)
-        verify = do([S1, S2, S3], S4)
-
         print("generate: %s" % abbrev(generate))
+
+        sign = do([S1, S2], S3)
         print("sign: %s" % abbrev(sign))
+
+        verify = do([S1, S2, S3], S4)
         print("verify: %s" % abbrev(verify))
+
+        # speedup opportunities:
+        #  bits-to-int (implemented with sum(2**i*bit(h,i) for in in range())
+        #    0.5ms for range(b), 1.0ms for range(2*b)
+        #    replace with int("%x"%bits,16)
+        #    plus/minus some bitshifts
+        #    maybe save 3ms here
+        #  redundant xform
+        #    R+Ah calc does pt_xform(scalarmult(A,h))
+        #    but scalarmult = pt_unxform(xpt_mult(pt_xform(pt),e))
+        #    can remove the pt_xform(pt_unxform()) pair
+        #    save 1ms here
+        #  v1==v2 works on untransformed values
+        #    can we leave them transformed? 2ms to save
+        #    probably not: Z will be different
+        #    maybe there's a way to compare extended coords quickly
+        #    can you add the points together and compare to 0?
+        #  expmod() should be pow()
+        #    reduces xrecover() from 1.9ms to 0.33
+        #    reduces decodepoint from 2.35 to 0.8
+        #    reduces pt_unxform from 1.03 to 0.040, via inv()
+        #    reduces scalarmult from 6.67 to 5.5, via pt_unxform()
+        #    probably 6.2ms just with this
+        #
+        # so 6.2m from expmod->pow, 2ms from bits2int
+        # should improve verf from 21.8 to ~15.6
+        # Actually yields 12.1ms, sweet.
+
+        # sign: 14.46ms
+        # verify: 21.78ms
+        #  decodepoint  2.35  ms (0.48 bits2int, 1.93 xrecover, <.002 oncurve)
+        #  decodepoint  2.35  ms
+        #  decodeint    0.468
+        #  encodepoint  0.168
+        #  Hint()       1.08  (0.019 is the hash, rest is bits2int)
+        #  scalarmult   6.67
+        #  R+Ah:        7.71
+        #   scalarmult   6.67
+        #   pt_xform     0.00082
+        #   pt_xform     0.00082
+        #   xpt_add      0.00357
+        #   pt_unxform   1.03
+        #
+        # xrecover: 1.90 ms
+
+
+        S1 = "from ed25519.pure_ed25519 import export"
+        S2 = "s=export['publickey']('')"
+        S3 = "p=export['decodepoint'](s)"
+        S4 = "i = '\xff'*32"
+        S5 = "si=export['decodeint'](i)"
+        S6 = "h=export['Hint']('')"
+        S7 = "Ah=export['scalarmult'](p,h)"
+        S8 = "Ahx=export['pt_xform'](Ah)"
+        S9 = "export['xpt_add'](Ahx,Ahx)"
+        S10 = "export['pt_unxform'](Ahx)"
+        S11 = "S=export['encodepoint'](p)"
+        S12 = "export['xrecover'](export['Bx'])"
+
+        def p(name, setup_statements, statements):
+            t = sorted([do(setup_statements, statements) for i in range(3)])
+            print("%12s:" % name, abbrev(min(t)), ",", *[abbrev(s) for s in t])
+
+        p("decodepoint", [S1, S2], S3)
+        p("decodeint", [S1, S4], S5)
+        p("scalarmult", [S1,S2,S3,S6], S7)
+        p("pt_xform", [S1,S2,S3,S6,S7], S8)
+        p("xpt_add", [S1,S2,S3,S6,S7,S8], S9)
+        p("pt_unxform", [S1,S2,S3,S6,S7,S8], S10)
+        p("encodepoint", [S1,S2,S3], S11)
+        p("Hint", [S1], S6)
+        p("xrecover", [S1], S12)
 
 setup(name="pure25519",
       version="0", # not for publication

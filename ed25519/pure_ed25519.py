@@ -12,6 +12,8 @@
 # http://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html
 # Specifically add-2008-hwcd-4 and dbl-2008-hwcd
 
+export = {}
+
 def Ed25519():
     # don't add many names to the file we're copied into
 
@@ -64,10 +66,13 @@ def Ed25519():
         if (x*x - xx) % q != 0: x = (x*I) % q
         if x % 2 != 0: x = q-x
         return x
+    export["xrecover"] = xrecover
 
     By = 4 * inv(5)
     Bx = xrecover(By)
+    export["Bx"] = Bx
     B = [Bx % q,By % q]
+    export["B"] = B
 
     #def edwards(P,Q):
     #    x1 = P[0]
@@ -104,6 +109,7 @@ def Ed25519():
         Z3 = (F*G) % q
         T3 = (E*H) % q
         return (X3, Y3, Z3, T3)
+    export["xpt_add"] = xpt_add
 
     def xpt_double (pt):
         (X1, Y1, Z1, _) = pt
@@ -125,18 +131,22 @@ def Ed25519():
     def pt_xform (pt):
         (x, y) = pt
         return (x, y, 1, (x*y)%q)
+    export["pt_xform"] = pt_xform
 
     def pt_unxform (pt):
         (x, y, z, _) = pt
         return ((x*inv(z))%q, (y*inv(z))%q)
+    export["pt_unxform"] = pt_unxform
 
     def xpt_mult (pt, n):
         if n==0: return pt_xform((0,1))
         _ = xpt_double(xpt_mult(pt, n>>1))
         return xpt_add(_, pt) if n&1 else _
+    export["xpt_mult"] = xpt_mult
 
     def scalarmult(pt, e):
         return pt_unxform(xpt_mult(pt_xform(pt), e))
+    export["scalarmult"] = scalarmult
 
     def encodeint(y):
         bits = [(y >> i) & 1 for i in range(b)]
@@ -151,16 +161,19 @@ def Ed25519():
         e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
                                         for i in range(b//8)]
         return asbytes(e)
+    export["encodepoint"] = encodepoint
 
     def publickey(sk):
         h = H(sk)
         a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
         A = scalarmult(B,a)
         return encodepoint(A)
+    export["publickey"] = publickey
 
     def Hint(m):
         h = H(m)
         return sum(2**i * bit(h,i) for i in range(2*b))
+    export["Hint"] = Hint
 
     def signature(m,sk,pk):
         sk = sk[:32]
@@ -179,6 +192,7 @@ def Ed25519():
 
     def decodeint(s):
         return sum(2**i * bit(s,i) for i in range(0,b))
+    export["decodeint"] = decodeint
 
     def decodepoint(s):
         y = sum(2**i * bit(s,i) for i in range(0,b-1))
@@ -187,13 +201,14 @@ def Ed25519():
         P = [x,y]
         if not isoncurve(P): raise Exception("decoding point that is not on curve")
         return P
+    export["decodepoint"] = decodepoint
 
     def checkvalid(s, m, pk):
         if len(s) != b//4: raise Exception("signature length is wrong")
         if len(pk) != b//8: raise Exception("public-key length is wrong")
-        R = decodepoint(s[0:b//8])
+        R = decodepoint(s[0:b//8]) # 32
         A = decodepoint(pk)
-        S = decodeint(s[b//8:b//4])
+        S = decodeint(s[b//8:b//4]) # 32
         h = Hint(encodepoint(R) + pk + m)
         v1 = scalarmult(B,S)
     #  v2 = edwards(R,scalarmult(A,h))

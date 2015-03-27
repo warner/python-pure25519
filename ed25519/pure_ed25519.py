@@ -185,7 +185,7 @@ def Ed25519():
         return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
 
     def decodeint(s):
-        return sum(2**i * bit(s,i) for i in range(0,b))
+        return int(binascii.hexlify(s[:32][::-1]), 16)
     export["decodeint"] = decodeint
 
     def decodepoint(s):

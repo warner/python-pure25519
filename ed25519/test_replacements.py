@@ -66,3 +66,14 @@ class Compare(unittest.TestCase):
                              self.new_decodepoint_sum_1(s))
             self.assertEqual(self.new_decodepoint_sum_1(s),
                              self.new_decodepoint_sum_2(s))
+
+    def orig_decodeint(self, s):
+        return sum(2**i * bit(s,i) for i in range(0,b))
+    def new_decodeint(self, s):
+        return int(hexlify(s[:32][::-1]), 16)
+
+    def test_decodeint(self):
+        for i in range(200):
+            s = H(str(i).encode("ascii"))[:32]
+            self.assertEqual(self.orig_decodeint(s),
+                             self.new_decodeint(s))

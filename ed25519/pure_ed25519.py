@@ -147,6 +147,7 @@ def Ed25519():
         e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
                                         for i in range(b//8)]
         return asbytes(e)
+    export["encodeint"] = encodeint
 
     def encodepoint(P):
         x = P[0]
@@ -183,6 +184,7 @@ def Ed25519():
         x = P[0]
         y = P[1]
         return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
+    export["isoncurve"] = isoncurve
 
     def decodeint(s):
         return int(binascii.hexlify(s[:32][::-1]), 16)

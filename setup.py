@@ -106,6 +106,19 @@ class Speed(Test):
         #
         # xrecover: 1.90 ms
 
+        # as of 5f98321, xrecover takes 326us
+        #  of which 160us is the inv()
+        #  and another 160us is the pow()
+        #  so the next step to reduce that is to implement the
+        #  extended-euclidean algorithm suggested in the comment
+        #  used once in xrecover, twice in pt_unxform
+        #  so 5 total, maybe 900us on the table
+
+        # remaining sum():
+        #  encodeint()
+        #  encodepoint()
+        #  publickey()
+        #  signature()
 
         S1 = "from ed25519.pure_ed25519 import export"
         S2 = "s=export['publickey'](b'')"
@@ -119,6 +132,8 @@ class Speed(Test):
         S10 = "export['pt_unxform'](Ahx)"
         S11 = "S=export['encodepoint'](p)"
         S12 = "export['xrecover'](export['Bx'])"
+        S13 = "export['isoncurve'](p)"
+        S14 = "export['encodeint'](si)"
 
         p("decodepoint", [S1, S2], S3)
         p("decodeint", [S1, S4], S5)
@@ -127,8 +142,10 @@ class Speed(Test):
         p("xpt_add", [S1,S2,S3,S6,S7,S8], S9)
         p("pt_unxform", [S1,S2,S3,S6,S7,S8], S10)
         p("encodepoint", [S1,S2,S3], S11)
+        p("encodeint", [S1,S4,S5], S14)
         p("Hint", [S1], S6)
         p("xrecover", [S1], S12)
+        p("isoncurve", [S1, S2, S3], S13)
 
 setup(name="pure25519",
       version="0", # not for publication

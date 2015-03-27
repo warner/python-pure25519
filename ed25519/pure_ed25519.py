@@ -37,7 +37,7 @@ def Ed25519():
         def bit(h, i):
             return (h[i//8] >> (i%8)) & 1
 
-    import hashlib
+    import hashlib, binascii
 
     b = 256
     q = 2**255 - 19
@@ -166,7 +166,7 @@ def Ed25519():
 
     def Hint(m):
         h = H(m)
-        return sum(2**i * bit(h,i) for i in range(2*b))
+        return int(binascii.hexlify(h[::-1]), 16)
     export["Hint"] = Hint
 
     def signature(m,sk,pk):

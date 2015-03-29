@@ -1,3 +1,24 @@
+import binascii
+
+try: # pragma nocover
+    unicode
+    PY3 = False
+    def asbytes(b):
+        """Convert array of integers to byte string"""
+        return ''.join(chr(x) for x in b)
+    def joinbytes(b):
+        """Convert array of bytes to byte string"""
+        return ''.join(b)
+    def bit(h, i):
+        """Return i'th bit of bytestring h"""
+        return (ord(h[i//8]) >> (i%8)) & 1
+
+except NameError: # pragma nocover
+    PY3 = True
+    asbytes = bytes
+    joinbytes = bytes
+    def bit(h, i):
+        return (h[i//8] >> (i%8)) & 1
 
 b = 256
 q = 2**255 - 19
@@ -90,3 +111,37 @@ def xpt_mult (pt, n):
 
 def scalarmult_with_extended(pt, e):
     return xform_extended_to_affine(xpt_mult(xform_affine_to_extended(pt), e))
+
+# encode/decode
+
+def encodeint(y):
+    bits = [(y >> i) & 1 for i in range(b)]
+    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
+                                    for i in range(b//8)]
+    return asbytes(e)
+
+def encodepoint(P):
+    x = P[0]
+    y = P[1]
+    bits = [(y >> i) & 1 for i in range(b - 1)] + [x & 1]
+    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
+                                    for i in range(b//8)]
+    return asbytes(e)
+
+def isoncurve(P):
+    x = P[0]
+    y = P[1]
+    return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
+
+def decodeint(s):
+    return int(binascii.hexlify(s[:32][::-1]), 16)
+
+def decodepoint(s):
+    unclamped = int(binascii.hexlify(s[:32][::-1]), 16)
+    clamp = (1 << 255) - 1
+    y = unclamped & clamp
+    x = xrecover(y)
+    if x & 1 != bit(s,b-1): x = q-x
+    P = [x,y]
+    if not isoncurve(P): raise Exception("decoding point that is not on curve")
+    return P

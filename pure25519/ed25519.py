@@ -1,7 +1,8 @@
 
-from .basic import (b,B,l,d,q,xrecover,
-                    scalarmult_with_extended as scalarmult,
-                    add_affine as add)
+from pure25519.basic import (b,B,l,
+                             encodepoint, encodeint, decodepoint, decodeint,
+                             scalarmult_with_extended as scalarmult,
+                             add_affine as add)
 import hashlib, binascii
 
 try: # pragma nocover
@@ -27,20 +28,6 @@ except NameError: # pragma nocover
 def H(m):
     return hashlib.sha512(m).digest()
 
-def encodeint(y):
-    bits = [(y >> i) & 1 for i in range(b)]
-    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
-                                    for i in range(b//8)]
-    return asbytes(e)
-
-def encodepoint(P):
-    x = P[0]
-    y = P[1]
-    bits = [(y >> i) & 1 for i in range(b - 1)] + [x & 1]
-    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
-                                    for i in range(b//8)]
-    return asbytes(e)
-
 def publickey(sk):
     h = H(sk)
     a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
@@ -61,24 +48,6 @@ def signature(m,sk,pk):
     S = (r + Hint(encodepoint(R) + pk + m) * a) % l
     return encodepoint(R) + encodeint(S)
 
-def isoncurve(P):
-    x = P[0]
-    y = P[1]
-    return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
-
-def decodeint(s):
-    return int(binascii.hexlify(s[:32][::-1]), 16)
-
-def decodepoint(s):
-    unclamped = int(binascii.hexlify(s[:32][::-1]), 16)
-    clamp = (1 << 255) - 1
-    y = unclamped & clamp
-    x = xrecover(y)
-    if x & 1 != bit(s,b-1): x = q-x
-    P = [x,y]
-    if not isoncurve(P): raise Exception("decoding point that is not on curve")
-    return P
-
 def checkvalid(s, m, pk):
     if len(s) != b//4: raise Exception("signature length is wrong")
     if len(pk) != b//8: raise Exception("public-key length is wrong")
@@ -92,3 +61,33 @@ def checkvalid(s, m, pk):
     #R_Ah_xpt = xpt_add(pt_xform(R), Ah_xpt)
     #v2 = pt_unxform(R_Ah_xpt)
     return v1==v2
+
+
+# wrappers
+
+import os
+
+def create_signing_key():
+    seed = os.urandom(32)
+    return seed
+def create_verifying_key(signing_key):
+    return publickey(signing_key)
+
+def sign(skbytes, msg):
+    """Return just the signature, given the message and just the secret
+    key."""
+    if len(skbytes) != 32:
+        raise ValueError("Bad signing key length %d" % len(skbytes))
+    vkbytes = create_verifying_key(skbytes)
+    sig = signature(msg, skbytes, vkbytes)
+    return sig
+
+def verify(vkbytes, sig, msg):
+    if len(vkbytes) != 32:
+        raise ValueError("Bad verifying key length %d" % len(vkbytes))
+    if len(sig) != 64:
+        raise ValueError("Bad signature length %d" % len(sig))
+    rc = checkvalid(sig, msg, vkbytes)
+    if not rc:
+        raise ValueError("rc != 0", rc)
+    return True

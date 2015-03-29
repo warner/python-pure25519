@@ -3,8 +3,8 @@ import sys
 import unittest
 import time
 from binascii import hexlify, unhexlify
-import ed25519
-from ed25519 import _ed25519 as raw
+from pure25519 import ed25519_oop as ed25519
+from pure25519 import _ed25519 as raw
 
 if sys.version_info[0] == 3:
     def int2byte(i):
@@ -35,11 +35,6 @@ class Basic(unittest.TestCase):
             self.timer = now
             print(" (%f elapsed)" % elapsed)
         print(msg)
-
-    def test_version(self):
-        # just make sure it can be retrieved
-        ver = ed25519.__version__
-        self.failUnless(isinstance(ver, type("")))
 
     def test_constants(self):
         # the secret key we get from raw.keypair() are 64 bytes long, and

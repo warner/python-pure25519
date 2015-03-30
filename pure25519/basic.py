@@ -114,11 +114,18 @@ def scalarmult_with_extended(pt, e):
 
 # encode/decode
 
+# scalars are encoded as 32-bytes little-endian
+
 def encodeint(y):
     bits = [(y >> i) & 1 for i in range(b)]
     e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
                                     for i in range(b//8)]
     return asbytes(e)
+
+def decodeint(s):
+    return int(binascii.hexlify(s[:32][::-1]), 16)
+
+# points are encoded as 32-bytes little-endian, b2b1 are 0, b0 is sign
 
 def encodepoint(P):
     x = P[0]
@@ -132,9 +139,6 @@ def isoncurve(P):
     x = P[0]
     y = P[1]
     return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
-
-def decodeint(s):
-    return int(binascii.hexlify(s[:32][::-1]), 16)
 
 def decodepoint(s):
     unclamped = int(binascii.hexlify(s[:32][::-1]), 16)

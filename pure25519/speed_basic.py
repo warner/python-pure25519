@@ -89,7 +89,7 @@ def p(name, setup_statements, statements):
 
 def run():
     S1 = "from pure25519 import basic"
-    S2 = "p=basic.scalarmult_affine(basic.B, 16)"
+    S2 = "p=basic.scalarmult_affine(basic.B, 16*1000000000)"
     S3 = "P=basic.encodepoint(p)"
     S4 = "basic.decodepoint(P)"
     S5big =   r"i = b'\f0'+b'\xff'*31"

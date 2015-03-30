@@ -53,6 +53,7 @@ def add_affine(P,Q): # complete
     return (x3 % q,y3 % q)
 
 def scalarmult_affine(P,e):
+    e = e % l
     if e == 0: return [0,1]
     Q = scalarmult_affine(P,e/2)
     Q = add_affine(Q,Q)
@@ -110,6 +111,7 @@ def scalarmult_extended (pt, n):
     return add_extended(_, pt) if n&1 else _
 
 def scalarmult_with_extended(pt, e):
+    e = e % l
     return xform_extended_to_affine(scalarmult_extended(xform_affine_to_extended(pt), e))
 
 # encode/decode

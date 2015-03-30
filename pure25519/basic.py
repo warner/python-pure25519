@@ -156,6 +156,3 @@ def random_scalar(entropy_f): # 0..l-1 inclusive
     # reduce the bias to a safe level by generating 256 extra bits
     oversized = int(binascii.hexlify(entropy_f(32+32)), 16)
     return oversized % l
-
-def random_element(entropy_f): # known DL
-    return scalarmult_with_extended(B, random_scalar(entropy_f))

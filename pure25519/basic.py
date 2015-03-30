@@ -104,13 +104,13 @@ def double_extended(pt): # dbl-2008-hwcd
     T3 = (E*H) % q
     return (X3, Y3, Z3, T3)
 
-def xpt_mult (pt, n):
+def scalarmult_extended (pt, n):
     if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(xpt_mult(pt, n>>1))
+    _ = double_extended(scalarmult_extended(pt, n>>1))
     return add_extended(_, pt) if n&1 else _
 
 def scalarmult_with_extended(pt, e):
-    return xform_extended_to_affine(xpt_mult(xform_affine_to_extended(pt), e))
+    return xform_extended_to_affine(scalarmult_extended(xform_affine_to_extended(pt), e))
 
 # encode/decode
 

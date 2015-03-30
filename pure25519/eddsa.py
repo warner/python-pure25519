@@ -2,6 +2,8 @@
 from pure25519.basic import (b,B,l,
                              encodepoint, encodeint, decodepoint, decodeint,
                              scalarmult_with_extended as scalarmult,
+                             scalarmult_extended, add_extended,
+                             xform_affine_to_extended, xform_extended_to_affine,
                              add_affine as add)
 import hashlib, binascii
 
@@ -57,9 +59,19 @@ def checkvalid(s, m, pk):
     h = Hint(encodepoint(R) + pk + m)
     v1 = scalarmult(B,S)
     v2 = add(R,scalarmult(A,h))
-    #Ah_xpt = xpt_mult(pt_xform(A), h)
-    #R_Ah_xpt = xpt_add(pt_xform(R), Ah_xpt)
-    #v2 = pt_unxform(R_Ah_xpt)
+    return v1==v2
+
+def checkvalid_2(s, m, pk):
+    if len(s) != b//4: raise Exception("signature length is wrong")
+    if len(pk) != b//8: raise Exception("public-key length is wrong")
+    R = decodepoint(s[0:b//8]) # 32
+    A = decodepoint(pk)
+    S = decodeint(s[b//8:b//4]) # 32
+    h = Hint(encodepoint(R) + pk + m)
+    v1 = scalarmult(B,S)
+    Ah_xpt = scalarmult_extended(xform_affine_to_extended(A), h)
+    R_Ah_xpt = add_extended(xform_affine_to_extended(R), Ah_xpt)
+    v2 = xform_extended_to_affine(R_Ah_xpt)
     return v1==v2
 
 

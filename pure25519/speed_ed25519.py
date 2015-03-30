@@ -4,7 +4,7 @@ def do(setup_statements, statement):
     # extracted from timeit.py
     t = timeit.Timer(stmt=statement,
                      setup="\n".join(setup_statements))
-    # determine number so that 0.2 <= total time < 2.0
+    # determine number so that 1.0 <= total time < 10.0
     for i in range(1, 10):
         number = 10**i
         x = t.timeit(number)
@@ -35,7 +35,11 @@ def run():
     p("sign", [S1, S2], S3)
     p("verify", [S1, S2, S3], S4)
 
-    S1 = "from pure25519 import ed25519 as P"
-    S2 = "h=P.Hint(b'')"
+    S5 = "from pure25519 import eddsa"
+    S6 = "h=eddsa.Hint(b'')"
+    S7 = "eddsa.checkvalid(sig, msg, vk.vk_s)"
+    S8 = "eddsa.checkvalid_2(sig, msg, vk.vk_s)"
 
-    p("Hint", [S1], S2)
+    p("Hint", [S5], S6)
+    p("checkvalid 1", [S1,S2,S3,S5], S7)
+    p("checkvalid 2", [S1,S2,S3,S5], S8)

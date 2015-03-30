@@ -21,3 +21,20 @@ Bad things about this module:
 Good things about this module:
 
 * can be used without a C compiler
+
+## Sources
+
+
+Adapted from https://bitbucket.org/dholth/ed25519ll
+
+Based on http://ed25519.cr.yp.to/python/ed25519.py
+
+See also http://ed25519.cr.yp.to/software.html
+
+Adapted by Ron Garret
+
+Sped up considerably using coordinate transforms found on:
+
+http://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html
+
+Specifically add-2008-hwcd-4 and dbl-2008-hwcd

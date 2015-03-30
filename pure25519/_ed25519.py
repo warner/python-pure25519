@@ -1,4 +1,4 @@
-from . import ed25519 as _raw
+from . import eddsa
 
 # adapt pure25519/ed25519.py to behave like (C/glue) ed25519/_ed25519.py, so
 # ed25519_oop.py doesn't have to change
@@ -39,14 +39,14 @@ SIGNATUREKEYBYTES = 64
 
 def publickey(seed32):
     assert len(seed32) == 32
-    vk32 = _raw.publickey(seed32)
+    vk32 = eddsa.publickey(seed32)
     return vk32, seed32+vk32
 
 def sign(msg, skvk):
     assert len(skvk) == 64
     sk = skvk[:32]
     vk = skvk[32:]
-    sig = _raw.signature(msg, sk, vk)
+    sig = eddsa.signature(msg, sk, vk)
     return sig+msg
 
 def open(sigmsg, vk):
@@ -54,7 +54,7 @@ def open(sigmsg, vk):
     sig = sigmsg[:64]
     msg = sigmsg[64:]
     try:
-        valid = _raw.checkvalid(sig, msg, vk)
+        valid = eddsa.checkvalid(sig, msg, vk)
     except ValueError as e:
         raise BadSignatureError(e)
     except Exception as e:

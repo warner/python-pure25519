@@ -106,6 +106,7 @@ def double_extended(pt): # dbl-2008-hwcd
     return (X3, Y3, Z3, T3)
 
 def scalarmult_extended (pt, n):
+    n = n % l
     if n==0: return xform_affine_to_extended((0,1))
     _ = double_extended(scalarmult_extended(pt, n>>1))
     return add_extended(_, pt) if n&1 else _

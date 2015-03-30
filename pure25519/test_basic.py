@@ -1,6 +1,7 @@
 import unittest
 from binascii import hexlify
-from pure25519.basic import (l, B, encodepoint,
+from pure25519.basic import (l, B, arbitrary_element, encodepoint,
+                             password_to_scalar,
                              add_affine,
                              scalarmult_affine, scalarmult_with_extended)
 
@@ -10,6 +11,20 @@ class Basic(unittest.TestCase):
                          msg)
     def assertBytesEqual(self, e1, e2, msg=None):
         self.assertEqual(hexlify(e1), hexlify(e2), msg)
+
+    def test_arbitrary_element(self):
+        for i in range(20):
+            seed = str(i).encode("ascii")
+            e = arbitrary_element(seed)
+            e2 = arbitrary_element(seed)
+            self.assertElementsEqual(e, e2)
+
+    def test_password_to_scalar(self):
+        for i in range(20):
+            seed = str(i).encode("ascii")
+            s = password_to_scalar(seed)
+            s2 = password_to_scalar(seed)
+            self.assertEqual(s, s2)
 
     def test_scalarmult(self):
         add = add_affine

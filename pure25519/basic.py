@@ -158,3 +158,23 @@ def random_scalar(entropy_f): # 0..l-1 inclusive
     # reduce the bias to a safe level by generating 256 extra bits
     oversized = int(binascii.hexlify(entropy_f(32+32)), 16)
     return oversized % l
+
+import hashlib
+def arbitrary_element(seed): # unknown DL
+    hseed = hashlib.sha512(seed).digest()
+    y = int(binascii.hexlify(hseed), 16) % q
+    while True:
+        x = xrecover(y)
+        P = [x,y]
+        P = scalarmult_affine(P, 8) # clear the cofactor
+        if isoncurve(P):
+            return P
+        # I don't understand how to do this properly yet. I expected that the
+        # *8 would let any random [xrecover(y),y] be a valid point, but it
+        # fails about 50% of the time. This loop is a desperate hack.
+        y = (y + 1) % q
+    return P
+
+def password_to_scalar(pw):
+    oversized = hashlib.sha512(pw).digest()
+    return int(binascii.hexlify(oversized), 16) % l

@@ -115,6 +115,37 @@ def scalarmult_with_extended(pt, e):
     e = e % l
     return xform_extended_to_affine(scalarmult_extended(xform_affine_to_extended(pt), e))
 
+def add_extended_z2is1(pt1, pt2): # madd-2008-hwcd-4
+    (X1, Y1, Z1, T1) = pt1
+    (X2, Y2, Z2, T2) = pt2
+    assert Z2 == 1
+    A = (Y1-X1)*(Y2+X2) % q
+    B = (Y1+X1)*(Y2-X2) % q
+    C = Z1*2*T2 % q
+    D = 2*T1 % q
+    E = D+C % q
+    F = B-A % q
+    G = B+A % q
+    H = D-C % q
+    X3 = E*F % q
+    Y3 = G*H % q
+    T3 = E*H % q
+    Z3 = F*G % q
+    return (X3, Y3, Z3, T3)
+
+def scalarmult_2_extended(pt, n):
+    # takes affine, returns extended
+    assert len(pt) == 2 # affine
+    n = n % l
+    if n==0: return xform_affine_to_extended((0,1))
+    xpt = xform_affine_to_extended(pt) # so Z=1
+    return scalarmult_2_extended_inner(xpt, n)
+
+def scalarmult_2_extended_inner(xpt, n):
+    if n==0: return xform_affine_to_extended((0,1))
+    _ = double_extended(scalarmult_2_extended_inner(xpt, n>>1))
+    return add_extended_z2is1(_, xpt) if n&1 else _
+
 # encode/decode
 
 # scalars are encoded as 32-bytes little-endian

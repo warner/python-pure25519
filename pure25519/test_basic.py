@@ -3,7 +3,9 @@ from binascii import hexlify
 from pure25519.basic import (l, B, arbitrary_element, encodepoint,
                              password_to_scalar,
                              add_affine,
-                             scalarmult_affine, scalarmult_with_extended)
+                             scalarmult_affine, scalarmult_with_extended,
+                             scalarmult_2_extended,
+                             xform_extended_to_affine)
 
 class Basic(unittest.TestCase):
     def assertElementsEqual(self, e1, e2, msg=None):
@@ -53,6 +55,8 @@ class Basic(unittest.TestCase):
         for i in range(-50, 100):
             e[i] = sm1(B, i)
             self.assertElementsEqual(sm2(B, i), e[i])
+            self.assertElementsEqual(xform_extended_to_affine(scalarmult_2_extended(B, i)),
+                                     e[i])
 
         for i in range(20,30):
             for j in range(-10,10):

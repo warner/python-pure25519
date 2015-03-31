@@ -151,10 +151,8 @@ def scalarmult_2_extended_inner(xpt, n):
 # scalars are encoded as 32-bytes little-endian
 
 def encodeint(y):
-    bits = [(y >> i) & 1 for i in range(b)]
-    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
-                                    for i in range(b//8)]
-    return asbytes(e)
+    assert 0 <= y < 2**256
+    return binascii.unhexlify("%064x" % y)[::-1]
 
 def decodeint(s):
     return int(binascii.hexlify(s[:32][::-1]), 16)

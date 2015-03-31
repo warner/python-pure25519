@@ -5,10 +5,14 @@ from binascii import hexlify, unhexlify
 import hashlib
 
 if sys.version_info[0] == 2:
+    def asbytes(b):
+        """Convert array of integers to byte string"""
+        return ''.join(chr(x) for x in b)
     def bit(h, i):
         """Return i'th bit of bytestring h"""
         return (ord(h[i//8]) >> (i%8)) & 1
 else:
+    asbytes = bytes
     def bit(h, i):
         return (h[i//8] >> (i%8)) & 1
 
@@ -107,3 +111,20 @@ class Compare(unittest.TestCase):
             sk = H(str(i).encode("ascii"))[:32]
             self.assertEqual(self.orig_signature_sum(sk),
                              self.new_signature_sum(sk))
+
+    def orig_encodeint(self, y):
+        bits = [(y >> i) & 1 for i in range(b)]
+        e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
+                                        for i in range(b//8)]
+        return asbytes(e)
+
+    def new_encodeint(self, y):
+        assert 0 <= y < 2**256
+        return unhexlify("%064x" % y)[::-1]
+
+    def test_encodeint(self):
+        for i in range(200):
+            s = H(str(i).encode("ascii"))[:32]
+            sint = self.orig_decodeint(s)
+            self.assertEqual(self.orig_encodeint(sint),
+                             self.new_encodeint(sint))

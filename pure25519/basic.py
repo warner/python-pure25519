@@ -1,25 +1,5 @@
 import binascii
 
-try: # pragma nocover
-    unicode
-    PY3 = False
-    def asbytes(b):
-        """Convert array of integers to byte string"""
-        return ''.join(chr(x) for x in b)
-    def joinbytes(b):
-        """Convert array of bytes to byte string"""
-        return ''.join(b)
-    def bit(h, i):
-        """Return i'th bit of bytestring h"""
-        return (ord(h[i//8]) >> (i%8)) & 1
-
-except NameError: # pragma nocover
-    PY3 = True
-    asbytes = bytes
-    joinbytes = bytes
-    def bit(h, i):
-        return (h[i//8] >> (i%8)) & 1
-
 b = 256
 q = 2**255 - 19
 l = 2**252 + 27742317777372353535851937790883648493

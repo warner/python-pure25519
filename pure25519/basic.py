@@ -177,9 +177,9 @@ def isoncurve(P):
 def decodepoint(s):
     unclamped = int(binascii.hexlify(s[:32][::-1]), 16)
     clamp = (1 << 255) - 1
-    y = unclamped & clamp
+    y = unclamped & clamp # clear MSB
     x = xrecover(y)
-    if x & 1 != bit(s,b-1): x = q-x
+    if bool(x & 1) != bool(unclamped & (1<<255)): x = q-x
     P = [x,y]
     if not isoncurve(P): raise Exception("decoding point that is not on curve")
     return P

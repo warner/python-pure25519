@@ -72,6 +72,37 @@ class Compare(unittest.TestCase):
             self.assertEqual(self.new_decodepoint_sum_1(s),
                              self.new_decodepoint_sum_2(s))
 
+    def orig_decodepoint_2(self, s):
+        # already sped up once
+        unclamped = int(hexlify(s[:32][::-1]), 16)
+        clamp = (1 << 255) - 1
+        y = unclamped & clamp
+        x = basic.xrecover(y)
+        if x & 1 != bit(s,b-1): x = basic.q-x
+        P = [x,y]
+        if not basic.isoncurve(P):
+            raise Exception("decoding point that is not on curve")
+        return P
+
+    def new_decodepoint_2(self, s):
+        # already sped up once
+        unclamped = int(hexlify(s[:32][::-1]), 16)
+        clamp = (1 << 255) - 1
+        y = unclamped & clamp
+        x = basic.xrecover(y)
+        if bool(x & 1) != bool(unclamped & (1<<255)): x = basic.q-x
+        P = [x,y]
+        if not basic.isoncurve(P):
+            raise Exception("decoding point that is not on curve")
+        return P
+
+    def test_decodepoint_2(self):
+        for i in range(200):
+            P = basic.arbitrary_element(str(i).encode("ascii"))
+            P_s = basic.encodepoint(P)
+            self.assertEqual(self.orig_decodepoint_2(P_s),
+                             self.new_decodepoint_2(P_s))
+
     def orig_decodeint(self, s):
         return sum(2**i * bit(s,i) for i in range(0,b))
     def new_decodeint(self, s):

@@ -3,6 +3,7 @@ import sys
 import unittest
 from binascii import hexlify, unhexlify
 import hashlib
+from pure25519 import basic
 
 if sys.version_info[0] == 2:
     def asbytes(b):
@@ -128,3 +129,27 @@ class Compare(unittest.TestCase):
             sint = self.orig_decodeint(s)
             self.assertEqual(self.orig_encodeint(sint),
                              self.new_encodeint(sint))
+
+    def orig_encodepoint(self, P):
+        x = P[0]
+        y = P[1]
+        bits = [(y >> i) & 1 for i in range(b - 1)] + [x & 1]
+        e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
+                                        for i in range(b//8)]
+        return asbytes(e)
+
+    def new_encodepoint(self, P):
+        x = P[0]
+        y = P[1]
+        # MSB of output equals x.b0 (=x&1)
+        # rest of output is little-endian y
+        assert 0 <= y < (1<<255) # always < 0x7fff..ff
+        if x & 1:
+            y += 1<<255
+        return unhexlify("%064x" % y)[::-1]
+
+    def test_encodepoint(self):
+        for i in range(200):
+            P = basic.arbitrary_element(str(i).encode("ascii"))
+            self.assertEqual(self.orig_encodepoint(P),
+                             self.new_encodepoint(P))

@@ -162,10 +162,12 @@ def decodeint(s):
 def encodepoint(P):
     x = P[0]
     y = P[1]
-    bits = [(y >> i) & 1 for i in range(b - 1)] + [x & 1]
-    e = [(sum([bits[i * 8 + j] << j for j in range(8)]))
-                                    for i in range(b//8)]
-    return asbytes(e)
+    # MSB of output equals x.b0 (=x&1)
+    # rest of output is little-endian y
+    assert 0 <= y < (1<<255) # always < 0x7fff..ff
+    if x & 1:
+        y += 1<<255
+    return binascii.unhexlify("%064x" % y)[::-1]
 
 def isoncurve(P):
     x = P[0]

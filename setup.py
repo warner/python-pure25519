@@ -28,10 +28,11 @@ class KnownAnswerTest(Test):
 class Speed(Test):
     description = "run benchmark suite"
     def run(self):
-        from pure25519 import speed_basic, speed_ed25519, speed_dh
+        from pure25519 import speed_basic, speed_ed25519, speed_dh, speed_spake2
         speed_basic.run()
         speed_ed25519.run()
         speed_dh.run()
+        speed_spake2.run()
 
 setup(name="pure25519",
       version="0", # not for publication

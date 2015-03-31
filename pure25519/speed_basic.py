@@ -111,6 +111,7 @@ def run():
     S19 = "(si * si) % basic.q"
     S20 = "basic.inv(si)"
 
+    print("speed_basic")
     if 1:
         p("encodepoint", [S1,S2], S3)
         p("decodepoint", [S1,S2,S3], S4)

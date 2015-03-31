@@ -31,6 +31,7 @@ def run():
     S3 = "sdata_V,Y_s = spake2.start_V(pw, os.urandom, A, B)"
     S4 = "k = spake2.finish_U(sdata_U,Y_s)"
 
+    print("speed_spake2")
     p("start", [S1], S2)
     p("finish", [S1, S2, S3], S4)
 

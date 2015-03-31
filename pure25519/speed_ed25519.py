@@ -31,6 +31,7 @@ def run():
     S3 = "sig = sk.sign(msg)"
     S4 = "vk.verify(sig, msg)"
 
+    print("speed_ed25519")
     p("generate", [S1], S2)
     p("sign", [S1, S2], S3)
     p("verify", [S1, S2, S3], S4)

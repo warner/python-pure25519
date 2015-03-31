@@ -31,5 +31,6 @@ def run():
     S3 = "y,Y_s = dh.dh_start(os.urandom)"
     S4 = "dh.dh_finish(x,Y_s)"
 
+    print("speed_dh")
     p("start", [S1], S2)
     p("finish", [S1, S2, S3], S4)

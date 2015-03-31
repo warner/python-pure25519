@@ -35,7 +35,7 @@ def add_affine(P,Q): # complete
 def scalarmult_affine(P,e):
     e = e % l
     if e == 0: return [0,1]
-    Q = scalarmult_affine(P,e/2)
+    Q = scalarmult_affine(P,e//2)
     Q = add_affine(Q,Q)
     if e & 1: Q = add_affine(Q,P)
     return Q

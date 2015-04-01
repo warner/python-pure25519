@@ -1,5 +1,5 @@
 from pure25519.basic import (B, random_scalar, decodepoint, encodepoint,
-                             scalarmult_with_extended as scalarmult)
+                             scalarmult_affine_2 as scalarmult)
 from hashlib import sha256
 
 # In practice, you should use the Curve25519 function, which is better in

@@ -3,8 +3,8 @@ from binascii import hexlify
 from pure25519.basic import (l, B, arbitrary_element, encodepoint,
                              password_to_scalar,
                              add_affine,
-                             scalarmult_affine, scalarmult_with_extended,
-                             scalarmult_2_extended,
+                             scalarmult_affine, scalarmult_affine_2,
+                             scalarmult_affine_to_extended,
                              xform_extended_to_affine)
 
 class Basic(unittest.TestCase):
@@ -31,7 +31,7 @@ class Basic(unittest.TestCase):
     def test_scalarmult(self):
         add = add_affine
         sm1 = scalarmult_affine
-        sm2 = scalarmult_with_extended
+        sm2 = scalarmult_affine_2
         e0 = sm1(B, 0)
         self.assertElementsEqual(add(e0,e0), e0)
         e1 = sm1(B,1)
@@ -55,7 +55,7 @@ class Basic(unittest.TestCase):
         for i in range(-50, 100):
             e[i] = sm1(B, i)
             self.assertElementsEqual(sm2(B, i), e[i])
-            self.assertElementsEqual(xform_extended_to_affine(scalarmult_2_extended(B, i)),
+            self.assertElementsEqual(xform_extended_to_affine(scalarmult_affine_to_extended(B, i)),
                                      e[i])
 
         for i in range(20,30):

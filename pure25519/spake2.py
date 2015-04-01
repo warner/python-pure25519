@@ -1,8 +1,8 @@
 from hashlib import sha256
 from pure25519.basic import (B, random_scalar, arbitrary_element,
                              decodepoint, encodepoint, password_to_scalar,
-                             scalarmult_with_extended, scalarmult_extended,
-                             scalarmult_2_extended,
+                             scalarmult_affine_2, scalarmult_extended,
+                             scalarmult_affine_to_extended, scalarmult_affine_3,
                              xform_affine_to_extended, xform_extended_to_affine,
                              add_affine, add_extended)
 
@@ -11,44 +11,46 @@ from pure25519.basic import (B, random_scalar, arbitrary_element,
 U = arbitrary_element(b"U")
 V = arbitrary_element(b"V")
 
+# v1: we only see affine, with scalarmult_affine_2 (uses ext internally)
+# v2: same, but use scalarmult_affine_3
+# v3: start affine, all middle products extended, convert back to affine
+#     just before encodepoint.
+# v4: same, but start extended. Requires pre-converting U/V to extended.
+
 def _start_v1(pw, entropy_f, U):
     a = random_scalar(entropy_f)
     pw_scalar = password_to_scalar(pw)
-    X = add_affine(scalarmult_with_extended(B, a),
-                   scalarmult_with_extended(U, pw_scalar))
+    X = add_affine(scalarmult_affine_2(B, a),
+                   scalarmult_affine_2(U, pw_scalar))
     X_s = encodepoint(X)
     return (a, pw_scalar), X_s
 
 def _finish_v1(start_data, Y_s, V):
     (a, pw_scalar) = start_data
     Y = decodepoint(Y_s)
-    Z = scalarmult_with_extended(
-        add_affine(Y, scalarmult_with_extended(V, -pw_scalar)),
+    Z = scalarmult_affine_2(
+        add_affine(Y, scalarmult_affine_2(V, -pw_scalar)),
         a)
     return encodepoint(Z)
 
-U_e = xform_affine_to_extended(arbitrary_element(b"U"))
-V_e = xform_affine_to_extended(arbitrary_element(b"V"))
-B_e = xform_affine_to_extended(B)
-def _start_v2(pw, entropy_f, U_e):
+def _start_v2(pw, entropy_f, U):
     a = random_scalar(entropy_f)
     pw_scalar = password_to_scalar(pw)
-    X = add_extended(scalarmult_extended(B_e, a),
-                     scalarmult_extended(U_e, pw_scalar))
-    X_s = encodepoint(xform_extended_to_affine(X))
+    X = add_affine(scalarmult_affine_3(B, a), scalarmult_affine_3(U, pw_scalar))
+    X_s = encodepoint(X)
     return (a, pw_scalar), X_s
 
-def _finish_v2(start_data, Y_s, V_e):
+def _finish_v2(start_data, Y_s, V):
     (a, pw_scalar) = start_data
-    Y = xform_affine_to_extended(decodepoint(Y_s))
-    Z = scalarmult_extended(add_extended(Y, scalarmult_extended(V_e, -pw_scalar)), a)
-    return encodepoint(xform_extended_to_affine(Z))
+    Y = decodepoint(Y_s)
+    Z = scalarmult_affine_3(add_affine(Y, scalarmult_affine_3(V, -pw_scalar)), a)
+    return encodepoint(Z)
 
 def _start_v3(pw, entropy_f, U):
     a = random_scalar(entropy_f)
     pw_scalar = password_to_scalar(pw)
-    X = add_extended(scalarmult_2_extended(B, a),
-                     scalarmult_2_extended(U, pw_scalar))
+    X = add_extended(scalarmult_affine_to_extended(B, a),
+                     scalarmult_affine_to_extended(U, pw_scalar))
     X_s = encodepoint(xform_extended_to_affine(X))
     return (a, pw_scalar), X_s
 
@@ -56,24 +58,25 @@ def _finish_v3(start_data, Y_s, V):
     (a, pw_scalar) = start_data
     Y = xform_affine_to_extended(decodepoint(Y_s))
     Z = scalarmult_extended(add_extended(Y,
-                                         scalarmult_2_extended(V, -pw_scalar)),
+                                         scalarmult_affine_to_extended(V, -pw_scalar)),
                             a)
     return encodepoint(xform_extended_to_affine(Z))
 
-def _start_v4(pw, entropy_f, U):
+U_e = xform_affine_to_extended(arbitrary_element(b"U"))
+V_e = xform_affine_to_extended(arbitrary_element(b"V"))
+B_e = xform_affine_to_extended(B)
+def _start_v4(pw, entropy_f, U_e):
     a = random_scalar(entropy_f)
     pw_scalar = password_to_scalar(pw)
-    X = add_extended(scalarmult_2_extended(B, a),
-                     scalarmult_2_extended(U, pw_scalar))
+    X = add_extended(scalarmult_extended(B_e, a),
+                     scalarmult_extended(U_e, pw_scalar))
     X_s = encodepoint(xform_extended_to_affine(X))
     return (a, pw_scalar), X_s
 
-def _finish_v4(start_data, Y_s, V):
+def _finish_v4(start_data, Y_s, V_e):
     (a, pw_scalar) = start_data
     Y = xform_affine_to_extended(decodepoint(Y_s))
-    Z = scalarmult_2_extended(xform_extended_to_affine(add_extended(Y,
-                                                                  scalarmult_2_extended(V, -pw_scalar))),
-                            a)
+    Z = scalarmult_extended(add_extended(Y, scalarmult_extended(V_e, -pw_scalar)), a)
     return encodepoint(xform_extended_to_affine(Z))
 
 

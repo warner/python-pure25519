@@ -1,7 +1,7 @@
 
 from pure25519.basic import (b,B,l,
                              encodepoint, encodeint, decodepoint, decodeint,
-                             scalarmult_with_extended as scalarmult,
+                             scalarmult_affine_2 as scalarmult,
                              scalarmult_extended, add_extended,
                              xform_affine_to_extended, xform_extended_to_affine,
                              add_affine as add)

@@ -23,7 +23,8 @@ B = [Bx % q,By % q]
 
 # Affine Coordinates
 
-def add_affine(P,Q): # complete
+def add_affine(P,Q): # affine->affine
+    # Complete: works even when P==Q. Slow: 50x slower than extended
     x1 = P[0]
     y1 = P[1]
     x2 = Q[0]
@@ -32,7 +33,7 @@ def add_affine(P,Q): # complete
     y3 = (y1*y2+x1*x2) * inv(1-d*x1*x2*y1*y2)
     return (x3 % q,y3 % q)
 
-def scalarmult_affine(P,e):
+def scalarmult_affine(P,e): # affine->affine
     e = e % l
     if e == 0: return [0,1]
     Q = scalarmult_affine(P,e//2)
@@ -51,7 +52,8 @@ def xform_extended_to_affine(pt):
     (x, y, z, _) = pt
     return ((x*inv(z))%q, (y*inv(z))%q)
 
-def add_extended(pt1, pt2): # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2
+def add_extended(pt1, pt2): # extended->extended
+    # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2
     (X1, Y1, Z1, T1) = pt1
     (X2, Y2, Z2, T2) = pt2
     A = ((Y1-X1)*(Y2+X2)) % q
@@ -68,7 +70,8 @@ def add_extended(pt1, pt2): # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2
     T3 = (E*H) % q
     return (X3, Y3, Z3, T3)
 
-def double_extended(pt): # dbl-2008-hwcd
+def double_extended(pt):
+    # dbl-2008-hwcd
     (X1, Y1, Z1, _) = pt
     A = (X1*X1)
     B = (Y1*Y1)
@@ -85,17 +88,20 @@ def double_extended(pt): # dbl-2008-hwcd
     T3 = (E*H) % q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_extended (pt, n):
+def scalarmult_extended (pt, n): # extended->extended
     n = n % l
     if n==0: return xform_affine_to_extended((0,1))
     _ = double_extended(scalarmult_extended(pt, n>>1))
     return add_extended(_, pt) if n&1 else _
 
-def scalarmult_with_extended(pt, e):
+def scalarmult_affine_2(pt, e): # affine->affine
     e = e % l
-    return xform_extended_to_affine(scalarmult_extended(xform_affine_to_extended(pt), e))
+    return xform_extended_to_affine(
+            scalarmult_extended(
+             xform_affine_to_extended(pt),
+            e))
 
-def add_extended_z2is1(pt1, pt2): # madd-2008-hwcd-4
+def _add_extended_z2is1(pt1, pt2): # madd-2008-hwcd-4
     (X1, Y1, Z1, T1) = pt1
     (X2, Y2, Z2, T2) = pt2
     assert Z2 == 1
@@ -113,18 +119,20 @@ def add_extended_z2is1(pt1, pt2): # madd-2008-hwcd-4
     Z3 = F*G % q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_2_extended(pt, n):
-    # takes affine, returns extended
+def scalarmult_affine_to_extended(pt, n): # affine->extended
     assert len(pt) == 2 # affine
     n = n % l
     if n==0: return xform_affine_to_extended((0,1))
     xpt = xform_affine_to_extended(pt) # so Z=1
-    return scalarmult_2_extended_inner(xpt, n)
+    return _scalarmult_affine_to_extended_inner(xpt, n)
 
-def scalarmult_2_extended_inner(xpt, n):
+def _scalarmult_affine_to_extended_inner(xpt, n):
     if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(scalarmult_2_extended_inner(xpt, n>>1))
-    return add_extended_z2is1(_, xpt) if n&1 else _
+    _ = double_extended(_scalarmult_affine_to_extended_inner(xpt, n>>1))
+    return _add_extended_z2is1(_, xpt) if n&1 else _
+
+def scalarmult_affine_3(pt, n): # affine->affine
+    return xform_extended_to_affine(scalarmult_affine_to_extended(pt, n))
 
 # encode/decode
 

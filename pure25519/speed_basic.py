@@ -98,7 +98,7 @@ def run():
     S6 = "si=basic.decodeint(i)"
     S7 = "basic.encodeint(si)"
     S8 = "basic.scalarmult_affine(p, si)"
-    S9 = "basic.scalarmult_with_extended(p, si)"
+    S9 = "basic.scalarmult_affine_2(p, si)"
     S10 = "x=basic.xform_affine_to_extended(p)"
     S11 = "basic.xform_extended_to_affine(x)"
     S12 = "p2 = basic.scalarmult_affine(basic.B, 17)"
@@ -110,6 +110,7 @@ def run():
     S18 = "(si + si) % basic.q"
     S19 = "(si * si) % basic.q"
     S20 = "basic.inv(si)"
+    S21 = "basic.scalarmult_affine_3(p, si)"
 
     print("speed_basic")
     if 1:
@@ -120,9 +121,12 @@ def run():
         p("scalarmult_affine (big)", [S1,S2,S5big,S6], S8)
         p("scalarmult_affine (medium)", [S1,S2,S5medium,S6], S8)
         p("scalarmult_affine (small)", [S1,S2,S5small,S6], S8)
-        p("scalarmult_with_extended (big)", [S1,S2,S5big,S6], S9)
-        p("scalarmult_with_extended (medium)", [S1,S2,S5medium,S6], S9)
-        p("scalarmult_with_extended (small)", [S1,S2,S5small,S6], S9)
+        p("scalarmult_affine_2 (big)", [S1,S2,S5big,S6], S9)
+        p("scalarmult_affine_2 (medium)", [S1,S2,S5medium,S6], S9)
+        p("scalarmult_affine_2 (small)", [S1,S2,S5small,S6], S9)
+        p("scalarmult_affine_3 (big)", [S1,S2,S5big,S6], S21)
+        p("scalarmult_affine_3 (medium)", [S1,S2,S5medium,S6], S21)
+        p("scalarmult_affine_3 (small)", [S1,S2,S5small,S6], S21)
         p("xform_affine_to_extended", [S1,S2], S10)
         p("xform_extended_to_affine", [S1,S2,S10], S11)
         p("add_affine", [S1,S2,S12], S13)

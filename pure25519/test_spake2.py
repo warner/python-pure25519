@@ -7,7 +7,6 @@ class SPAKE2(unittest.TestCase):
         self.assertEqual(hexlify(e1), hexlify(e2))
 
     def test_success(self):
-        print
         pw = b"password"
         sd_U,X = start_U(pw, os.urandom, b"idA", b"idB")
         sd_V,Y = start_V(pw, os.urandom, b"idA", b"idB")

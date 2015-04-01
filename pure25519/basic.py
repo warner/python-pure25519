@@ -52,8 +52,9 @@ def xform_extended_to_affine(pt):
     (x, y, z, _) = pt
     return ((x*inv(z))%q, (y*inv(z))%q)
 
-def add_extended(pt1, pt2): # extended->extended
-    # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2
+def _add_extended_nonunfied(pt1, pt2): # extended->extended
+    # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2. About 10% faster than
+    # the (unified) add-2008-hwcd-3, and safe to use inside scalarmult.
     (X1, Y1, Z1, T1) = pt1
     (X2, Y2, Z2, T2) = pt2
     A = ((Y1-X1)*(Y2+X2)) % q
@@ -70,7 +71,7 @@ def add_extended(pt1, pt2): # extended->extended
     T3 = (E*H) % q
     return (X3, Y3, Z3, T3)
 
-def double_extended(pt):
+def double_extended(pt): # extended->extended
     # dbl-2008-hwcd
     (X1, Y1, Z1, _) = pt
     A = (X1*X1)
@@ -88,11 +89,30 @@ def double_extended(pt):
     T3 = (E*H) % q
     return (X3, Y3, Z3, T3)
 
+def add_extended(pt1, pt2): # extended->extended
+    # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
+    # unified, so it's safe for general-purpose addition..
+    (X1, Y1, Z1, T1) = pt1
+    (X2, Y2, Z2, T2) = pt2
+    A = ((Y1-X1)*(Y2-X2)) % q
+    B = ((Y1+X1)*(Y2+X2)) % q
+    C = T1*(2*d)*T2 % q
+    D = Z1*2*Z2 % q
+    E = (B-A) % q
+    F = (D-C) % q
+    G = (D+C) % q
+    H = (B+A) % q
+    X3 = (E*F) % q
+    Y3 = (G*H) % q
+    T3 = (E*H) % q
+    Z3 = (F*G) % q
+    return (X3, Y3, Z3, T3)
+
 def scalarmult_extended (pt, n): # extended->extended
     n = n % l
     if n==0: return xform_affine_to_extended((0,1))
     _ = double_extended(scalarmult_extended(pt, n>>1))
-    return add_extended(_, pt) if n&1 else _
+    return _add_extended_nonunfied(_, pt) if n&1 else _
 
 def scalarmult_affine_2(pt, e): # affine->affine
     e = e % l
@@ -111,7 +131,7 @@ def scalarmult_affine_to_extended(pt, n): # affine->extended
 def _scalarmult_affine_to_extended_inner(xpt, n):
     if n==0: return xform_affine_to_extended((0,1))
     _ = double_extended(_scalarmult_affine_to_extended_inner(xpt, n>>1))
-    return add_extended(_, xpt) if n&1 else _
+    return _add_extended_nonunfied(_, xpt) if n&1 else _
 
 # encode/decode
 

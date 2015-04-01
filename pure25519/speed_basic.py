@@ -110,6 +110,7 @@ def run():
     S18 = "(si + si) % basic.q"
     S19 = "(si * si) % basic.q"
     S20 = "basic.inv(si)"
+    S21 = "basic._add_extended_nonunfied(x, x2)"
 
     print("speed_basic")
     if 1:
@@ -127,6 +128,7 @@ def run():
         p("xform_extended_to_affine", [S1,S2,S10], S11)
         p("add_affine", [S1,S2,S12], S13)
         p("add_extended", [S1,S2,S12,S10,S14], S15)
+        p("add_extended_nonunified", [S1,S2,S12,S10,S14], S21)
         p("xrecover", [S1], S16)
         p("isoncurve", [S1,S2], S17)
     if 1:

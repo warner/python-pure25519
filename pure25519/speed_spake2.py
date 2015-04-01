@@ -34,15 +34,3 @@ def run():
     print("speed_spake2")
     p("start", [S1], S2)
     p("finish", [S1, S2, S3], S4)
-
-    S1 = "import os; from pure25519 import spake2; pw=b'pw'"
-    S2v1 = "sdata,X_s = spake2._start_v1(pw, os.urandom, spake2.U)"
-    S2v3 = "sdata,X_s = spake2._start_v3(pw, os.urandom, spake2.U)"
-    S3 = "sdata2,Y_s = spake2._start_v1(pw, os.urandom, spake2.V)"
-    S4v1 = "Z = spake2._finish_v1(sdata, Y_s, spake2.V)"
-    S4v3 = "Z = spake2._finish_v3(sdata, Y_s, spake2.V)"
-
-    p("_start_v1", [S1], S2v1)
-    p("_start_v3", [S1], S2v3)
-    p("_finish_v1", [S1,S2v1,S3], S4v1)
-    p("_finish_v3", [S1,S2v1,S3], S4v3)

@@ -1,14 +1,14 @@
 from __future__ import print_function
 import unittest
 from binascii import hexlify, unhexlify
-import ed25519
+from pure25519.ed25519_oop import SigningKey, VerifyingKey
 
 class KnownAnswerTests(unittest.TestCase):
     def test_all(self):
         # kat-ed25519.txt comes from "sign.input" on ed25519.cr.yp.to . The
         # pure-python ed25519.py in the same distribution uses a very
         # different key format than the one used by NaCl.
-        lines = list(open("ed25519/kat-ed25519.txt"))
+        lines = list(open("pure25519/kat-ed25519.txt"))
         for i,line in enumerate(lines):
             if not i%50: print("%d/%d" % (i, len(lines)))
             x = line.split(":")
@@ -30,10 +30,10 @@ class KnownAnswerTests(unittest.TestCase):
             #if len(msg) % 16 == 1:
             #    print "msg len = %d" % len(msg), time.time()
 
-            sk = ed25519.SigningKey(seed)
+            sk = SigningKey(seed)
             vk = sk.get_verifying_key()
             self.failUnlessEqual(vk.to_bytes(), vk_s)
-            vk2 = ed25519.VerifyingKey(vk_s)
+            vk2 = VerifyingKey(vk_s)
             self.failUnlessEqual(vk2, vk) # objects should compare equal
             self.failUnlessEqual(vk2.to_bytes(), vk_s)
             newsig = sk.sign(msg)

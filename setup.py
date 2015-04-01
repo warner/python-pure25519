@@ -20,7 +20,7 @@ class Test(Command):
 class KnownAnswerTest(Test):
     description = "run known-answer-tests"
     def run(self):
-        test = unittest.defaultTestLoader.loadTestsFromName("ed25519.do_ed25519_kat")
+        test = unittest.defaultTestLoader.loadTestsFromName("pure25519.do_ed25519_kat")
         runner = unittest.TextTestRunner(verbosity=2)
         result = runner.run(test)
         sys.exit(not result.wasSuccessful())

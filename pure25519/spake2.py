@@ -2,7 +2,7 @@ from hashlib import sha256
 from pure25519.basic import (B, random_scalar, arbitrary_element,
                              decodepoint, encodepoint, password_to_scalar,
                              scalarmult_affine_2, scalarmult_extended,
-                             scalarmult_affine_to_extended, scalarmult_affine_3,
+                             scalarmult_affine_to_extended,
                              xform_affine_to_extended, xform_extended_to_affine,
                              add_affine, add_extended)
 
@@ -12,7 +12,6 @@ U = arbitrary_element(b"U")
 V = arbitrary_element(b"V")
 
 # v1: we only see affine, with scalarmult_affine_2 (uses ext internally)
-# v2: same, but use scalarmult_affine_3
 # v3: start affine, all middle products extended, convert back to affine
 #     just before encodepoint.
 # v4: same, but start extended. Requires pre-converting U/V to extended.
@@ -31,19 +30,6 @@ def _finish_v1(start_data, Y_s, V):
     Z = scalarmult_affine_2(
         add_affine(Y, scalarmult_affine_2(V, -pw_scalar)),
         a)
-    return encodepoint(Z)
-
-def _start_v2(pw, entropy_f, U):
-    a = random_scalar(entropy_f)
-    pw_scalar = password_to_scalar(pw)
-    X = add_affine(scalarmult_affine_3(B, a), scalarmult_affine_3(U, pw_scalar))
-    X_s = encodepoint(X)
-    return (a, pw_scalar), X_s
-
-def _finish_v2(start_data, Y_s, V):
-    (a, pw_scalar) = start_data
-    Y = decodepoint(Y_s)
-    Z = scalarmult_affine_3(add_affine(Y, scalarmult_affine_3(V, -pw_scalar)), a)
     return encodepoint(Z)
 
 def _start_v3(pw, entropy_f, U):

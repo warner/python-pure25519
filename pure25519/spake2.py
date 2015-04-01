@@ -14,7 +14,6 @@ V = arbitrary_element(b"V")
 # v1: we only see affine, with scalarmult_affine_2 (uses ext internally)
 # v3: start affine, all middle products extended, convert back to affine
 #     just before encodepoint.
-# v4: same, but start extended. Requires pre-converting U/V to extended.
 
 def _start_v1(pw, entropy_f, U):
     a = random_scalar(entropy_f)
@@ -46,23 +45,6 @@ def _finish_v3(start_data, Y_s, V):
     Z = scalarmult_extended(add_extended(Y,
                                          scalarmult_affine_to_extended(V, -pw_scalar)),
                             a)
-    return encodepoint(xform_extended_to_affine(Z))
-
-U_e = xform_affine_to_extended(arbitrary_element(b"U"))
-V_e = xform_affine_to_extended(arbitrary_element(b"V"))
-B_e = xform_affine_to_extended(B)
-def _start_v4(pw, entropy_f, U_e):
-    a = random_scalar(entropy_f)
-    pw_scalar = password_to_scalar(pw)
-    X = add_extended(scalarmult_extended(B_e, a),
-                     scalarmult_extended(U_e, pw_scalar))
-    X_s = encodepoint(xform_extended_to_affine(X))
-    return (a, pw_scalar), X_s
-
-def _finish_v4(start_data, Y_s, V_e):
-    (a, pw_scalar) = start_data
-    Y = xform_affine_to_extended(decodepoint(Y_s))
-    Z = scalarmult_extended(add_extended(Y, scalarmult_extended(V_e, -pw_scalar)), a)
     return encodepoint(xform_extended_to_affine(Z))
 
 

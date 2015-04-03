@@ -142,7 +142,21 @@ def encodeint(y):
     return binascii.unhexlify("%064x" % y)[::-1]
 
 def decodeint(s):
-    return int(binascii.hexlify(s[:32][::-1]), 16)
+    assert len(s) == 32
+    return int(binascii.hexlify(s[::-1]), 16)
+
+def clamped_decodeint(s):
+    # clamp the scalar to ensure two things:
+    #   1: integer value is in l/2 .. l, to avoid small-logarithm
+    #      non-wraparaound
+    #   2: low-order 3 bits are zero, so a small-subgroup attack won't learn
+    #      any information
+    # set the top two bits to 01, and the bottom three to 000
+    a_unclamped = decodeint(s)
+    AND_CLAMP = (1<<254) - 1 - 7
+    OR_CLAMP = (1<<254)
+    a_clamped = (a_unclamped & AND_CLAMP) | OR_CLAMP
+    return a_clamped
 
 # points are encoded as 32-bytes little-endian, b2b1 are 0, b0 is sign
 

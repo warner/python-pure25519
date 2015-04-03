@@ -1,5 +1,5 @@
 
-from pure25519.basic import (b,B,l,
+from pure25519.basic import (b,B,l, clamped_decodeint,
                              encodepoint, encodeint, decodepoint, decodeint,
                              scalarmult_affine_2 as scalarmult,
                              scalarmult_extended, add_extended,
@@ -30,9 +30,10 @@ except NameError: # pragma nocover
 def H(m):
     return hashlib.sha512(m).digest()
 
-def publickey(sk):
-    h = H(sk)
-    a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
+def publickey(seed):
+    # turn first half of SHA512(seed) into a scalar, then into a point
+    assert len(seed) == 32
+    a = clamped_decodeint(H(seed)[:32])
     A = scalarmult(B,a)
     return encodepoint(A)
 

@@ -142,7 +142,7 @@ def encodeint(y):
     return binascii.unhexlify("%064x" % y)[::-1]
 
 def decodeint(s):
-    assert len(s) == 32
+    assert len(s) == 32, len(s)
     return int(binascii.hexlify(s[::-1]), 16)
 
 def clamped_decodeint(s):

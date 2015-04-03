@@ -199,12 +199,19 @@ def arbitrary_element(seed): # unknown DL
     while True:
         x = xrecover(y)
         P = [x,y]
-        P = scalarmult_affine(P, 8) # clear the cofactor
+        # only about 50% of Y coordinates map to valid curve points (I think
+        # the other half give you points on the "twist").
         if isoncurve(P):
+            # I'm worried about points of small order, but I'm not sure if I
+            # should be.
+            assert scalarmult_affine(P, 2+1) != B
+            assert scalarmult_affine(P, 4+1) != B
+            assert scalarmult_affine(P, 8+1) != B
+            # I think this clears the cofactor. If we don't multiply by at
+            # least 4, then SPAKE2 fails roughly half the time.
+            P = scalarmult_affine(P, 8)
             return P
-        # I don't understand how to do this properly yet. I expected that the
-        # *8 would let any random [xrecover(y),y] be a valid point, but it
-        # fails about 50% of the time. This loop is a desperate hack.
+        # increment our Y and try again until we find a valid point
         y = (y + 1) % q
     return P
 

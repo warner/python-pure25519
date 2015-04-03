@@ -1,16 +1,15 @@
-from pure25519.basic import (B, random_scalar, decodepoint, encodepoint,
-                             scalarmult_affine_2 as scalarmult)
+from pure25519.basic import Element, Scalar, Base
 from hashlib import sha256
 
 # In practice, you should use the Curve25519 function, which is better in
 # every way. But this is an example of what Diffie-Hellman looks like.
 
 def dh_start(entropy_f):
-    x = random_scalar(entropy_f)
-    X = scalarmult(B, x)
-    return x,encodepoint(X)
+    x = Scalar.random(entropy_f)
+    X = Base.scalarmult(x)
+    return x,X.to_bytes()
 
 def dh_finish(x, Y_s):
-    Y = decodepoint(Y_s)
-    XY = scalarmult(Y, x)
-    return sha256(encodepoint(XY)).digest()
+    Y = Element.from_bytes(Y_s)
+    XY = Y.scalarmult(x)
+    return sha256(XY.to_bytes()).digest()

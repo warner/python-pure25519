@@ -211,3 +211,66 @@ def arbitrary_element(seed): # unknown DL
 def password_to_scalar(pw):
     oversized = hashlib.sha512(pw).digest()
     return int(binascii.hexlify(oversized), 16) % l
+
+
+INT_TYPE = type(1<<256) # 'long' on py2, 'int' on py3
+
+class Scalar(INT_TYPE):
+    def __init__(self, val):
+        INT_TYPE.__init__(self, val % l)
+    def __neg__(self):
+        return INT_TYPE.__neg__(self) % l
+    def __add__(self, other):
+        return self.__add__(self, other) % l
+    def __sub__(self, other):
+        return self.__sub__(self, other) % l
+    def __mul__(self, other):
+        return self.__mul__(self, other) % l
+    def __div__(self, other):
+        raise TypeError("Scalars cannot be divided, only +/-/*")
+    def __divmod__(self, other):
+        raise TypeError("Scalars cannot be divided, only +/-/*")
+
+    def to_bytes(self):
+        return encodeint(self % l)
+
+    @classmethod
+    def random(klass, entropy_f):
+        return klass(random_scalar(entropy_f))
+    @classmethod
+    def from_bytes(klass, bytes):
+        return decodeint(bytes)
+    @classmethod
+    def from_pasword(klass, pw):
+        return klass(password_to_scalar(pw))
+    @classmethod
+    def clamped_from_bytes(klass, bytes):
+        return klass(clamped_decodeint(bytes))
+
+class Element:
+    def __init__(self, XYTZ):
+        assert isinstance(XYTZ, tuple)
+        assert len(XYTZ) == 4
+        self.XYTZ = XYTZ
+    def add(self, other):
+        return Element(add_extended(self.XYTZ, other.XYTZ))
+    def negate(self):
+        # slow. Prefer e.scalarmult(-pw) to e.scalarmult(pw).negate()
+        return Element(scalarmult_extended(self.XYTZ, l-2))
+    def subtract(self, other):
+        return self.add(self.negate(other))
+    def scalarmult(self, s):
+        return Element(scalarmult_extended(self.XYTZ, int(s)))
+    def to_bytes(self):
+        return encodepoint(xform_extended_to_affine(self.XYTZ))
+    def __cmp__(self, other):
+        return cmp(self.to_bytes(), other.to_bytes())
+
+    @classmethod
+    def from_bytes(klass, bytes):
+        return klass(xform_affine_to_extended(decodepoint(bytes)))
+    @classmethod
+    def arbitrary(klass, seed):
+        return klass(xform_affine_to_extended(arbitrary_element(seed)))
+
+Base = Element(xform_affine_to_extended(B))

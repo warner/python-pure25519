@@ -1,32 +1,23 @@
 from hashlib import sha256
-from pure25519.basic import (B, random_scalar, arbitrary_element,
-                             decodepoint, encodepoint, password_to_scalar,
-                             scalarmult_extended, add_extended,
-                             scalarmult_affine_to_extended,
-                             xform_affine_to_extended, xform_extended_to_affine,
-                             )
+from pure25519.basic import Element, Scalar, Base
 
 # a,b random. X=G*a+U*pw. Y=G*b+V*pw. Z1=(Y-V*pw)*a. Z2=(X-U*pw)*b
 
-U = arbitrary_element(b"U")
-V = arbitrary_element(b"V")
+U = Element.arbitrary(b"U")
+V = Element.arbitrary(b"V")
 
 def _start(pw, entropy_f, blinding):
-    a = random_scalar(entropy_f)
-    pw_scalar = password_to_scalar(pw)
-    X_x = add_extended(scalarmult_affine_to_extended(B, a),
-                       scalarmult_affine_to_extended(blinding, pw_scalar))
-    X_s = encodepoint(xform_extended_to_affine(X_x))
+    a = Scalar.random(entropy_f)
+    pw_scalar = Scalar.from_pasword(pw)
+    X = Base.scalarmult(a).add(blinding.scalarmult(pw_scalar))
+    X_s = X.to_bytes()
     return (a, pw_scalar), X_s
 
 def _finish(start_data, Y_s, blinding):
     (a, pw_scalar) = start_data
-    Y_x = xform_affine_to_extended(decodepoint(Y_s))
-    Z_x = scalarmult_extended(
-        add_extended(Y_x,
-                     scalarmult_affine_to_extended(blinding, -pw_scalar)),
-        a)
-    return encodepoint(xform_extended_to_affine(Z_x))
+    Y = Element.from_bytes(Y_s)
+    Z = Y.add(blinding.scalarmult(-pw_scalar)).scalarmult(a)
+    return Z.to_bytes()
 
 
 def start_U(pw, entropy_f, idA, idB, U=U, V=V):

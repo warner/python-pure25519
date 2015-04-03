@@ -1,80 +1,43 @@
 
-from pure25519.basic import (b,B,l, clamped_decodeint,
-                             encodepoint, encodeint, decodepoint, decodeint,
-                             scalarmult_affine_2 as scalarmult,
-                             scalarmult_extended, add_extended,
-                             xform_affine_to_extended, xform_extended_to_affine,
-                             add_affine as add)
+from pure25519.basic import Element, Scalar, Base
 import hashlib, binascii
-
-try: # pragma nocover
-    unicode
-    PY3 = False
-    def asbytes(b):
-        """Convert array of integers to byte string"""
-        return ''.join(chr(x) for x in b)
-    def joinbytes(b):
-        """Convert array of bytes to byte string"""
-        return ''.join(b)
-    def bit(h, i):
-        """Return i'th bit of bytestring h"""
-        return (ord(h[i//8]) >> (i%8)) & 1
-
-except NameError: # pragma nocover
-    PY3 = True
-    asbytes = bytes
-    joinbytes = bytes
-    def bit(h, i):
-        return (h[i//8] >> (i%8)) & 1
 
 def H(m):
     return hashlib.sha512(m).digest()
 
 def publickey(seed):
-    # turn first half of SHA512(seed) into a scalar, then into a point
+    # turn first half of SHA512(seed) into scalar, then into point
     assert len(seed) == 32
-    a = clamped_decodeint(H(seed)[:32])
-    A = scalarmult(B,a)
-    return encodepoint(A)
+    a = Scalar.clamped_from_bytes(H(seed)[:32])
+    A = Base.scalarmult(a)
+    return A.to_bytes()
 
 def Hint(m):
     h = H(m)
     return int(binascii.hexlify(h[::-1]), 16)
 
 def signature(m,sk,pk):
-    sk = sk[:32]
-    h = H(sk)
-    a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
-    inter = joinbytes([h[i] for i in range(b//8,b//4)])
+    assert len(sk) == 32 # seed
+    assert len(pk) == 32
+    h = H(sk[:32])
+    a_bytes, inter = h[:32], h[32:]
+    a = Scalar.clamped_from_bytes(a_bytes)
     r = Hint(inter + m)
-    R = scalarmult(B,r)
-    S = (r + Hint(encodepoint(R) + pk + m) * a) % l
-    return encodepoint(R) + encodeint(S)
+    R = Base.scalarmult(r)
+    R_bytes = R.to_bytes()
+    S = Scalar(r + Hint(R_bytes + pk + m) * a)
+    return R_bytes + S.to_bytes()
 
 def checkvalid(s, m, pk):
-    if len(s) != b//4: raise Exception("signature length is wrong")
-    if len(pk) != b//8: raise Exception("public-key length is wrong")
-    R = decodepoint(s[0:b//8]) # 32
-    A = decodepoint(pk)
-    S = decodeint(s[b//8:b//4]) # 32
-    h = Hint(encodepoint(R) + pk + m)
-    v1 = scalarmult(B,S)
-    v2 = add(R,scalarmult(A,h))
+    if len(s) != 64: raise Exception("signature length is wrong")
+    if len(pk) != 32: raise Exception("public-key length is wrong")
+    R = Element.from_bytes(s[:32])
+    A = Element.from_bytes(pk)
+    S = Scalar.from_bytes(s[32:])
+    h = Hint(s[:32] + pk + m)
+    v1 = Base.scalarmult(S)
+    v2 = R.add(A.scalarmult(h))
     return v1==v2
-
-def checkvalid_2(s, m, pk):
-    if len(s) != b//4: raise Exception("signature length is wrong")
-    if len(pk) != b//8: raise Exception("public-key length is wrong")
-    R = decodepoint(s[0:b//8]) # 32
-    A = decodepoint(pk)
-    S = decodeint(s[b//8:b//4]) # 32
-    h = Hint(encodepoint(R) + pk + m)
-    v1 = scalarmult(B,S)
-    Ah_xpt = scalarmult_extended(xform_affine_to_extended(A), h)
-    R_Ah_xpt = add_extended(xform_affine_to_extended(R), Ah_xpt)
-    v2 = xform_extended_to_affine(R_Ah_xpt)
-    return v1==v2
-
 
 # wrappers
 

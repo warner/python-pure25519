@@ -39,8 +39,6 @@ def run():
     S5 = "from pure25519 import eddsa"
     S6 = "h=eddsa.Hint(b'')"
     S7 = "eddsa.checkvalid(sig, msg, vk.vk_s)"
-    S8 = "eddsa.checkvalid_2(sig, msg, vk.vk_s)"
 
     p("Hint", [S5], S6)
-    p("checkvalid 1", [S1,S2,S3,S5], S7)
-    p("checkvalid 2", [S1,S2,S3,S5], S8)
+    p("checkvalid", [S1,S2,S3,S5], S7)

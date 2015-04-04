@@ -204,9 +204,9 @@ def arbitrary_element(seed): # unknown DL
         if isoncurve(P):
             # I'm worried about points of small order, but I'm not sure if I
             # should be.
-            assert scalarmult_affine(P, 2+1) != B
-            assert scalarmult_affine(P, 4+1) != B
-            assert scalarmult_affine(P, 8+1) != B
+            assert scalarmult_affine(P, 2) != B
+            assert scalarmult_affine(P, 4) != B
+            assert scalarmult_affine(P, 8) != B
             # I think this clears the cofactor. If we don't multiply by at
             # least 4, then SPAKE2 fails roughly half the time.
             P = scalarmult_affine(P, 8)
@@ -248,7 +248,7 @@ class Scalar(INT_TYPE):
     def from_bytes(klass, bytes):
         return decodeint(bytes)
     @classmethod
-    def from_pasword(klass, pw):
+    def from_password(klass, pw):
         return klass(password_to_scalar(pw))
     @classmethod
     def clamped_from_bytes(klass, bytes):

@@ -8,7 +8,7 @@ V = Element.arbitrary(b"V")
 
 def _start(pw, entropy_f, blinding):
     a = Scalar.random(entropy_f)
-    pw_scalar = Scalar.from_pasword(pw)
+    pw_scalar = Scalar.from_password(pw)
     X = Base.scalarmult(a).add(blinding.scalarmult(pw_scalar))
     X_s = X.to_bytes()
     return (a, pw_scalar), X_s

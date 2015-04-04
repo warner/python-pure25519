@@ -88,7 +88,7 @@ def p(name, setup_statements, statements):
 # pure_ed25519.sign() is doing an extra publickey(), doubles the cost
 
 def run():
-    S1 = "from pure25519 import basic"
+    S1 = "from pure25519 import basic, slow_basic"
     S2 = "p=basic.scalarmult_affine(basic.B, 16*1000000000)"
     S3 = "P=basic.encodepoint(p)"
     S4 = "basic.decodepoint(P)"
@@ -97,12 +97,12 @@ def run():
     S5small = r"i = b'\xf0'+b'\x00'*31"
     S6 = "si=basic.decodeint(i)"
     S7 = "basic.encodeint(si)"
-    S8 = "basic.scalarmult_affine(p, si)"
-    S9 = "basic.scalarmult_affine_2(p, si)"
+    S8 = "slow_basic.slow_scalarmult_affine(p, si)"
+    S9 = "basic.scalarmult_affine(p, si)"
     S10 = "x=basic.xform_affine_to_extended(p)"
     S11 = "basic.xform_extended_to_affine(x)"
     S12 = "p2 = basic.scalarmult_affine(basic.B, 17)"
-    S13 = "basic.add_affine(p, p2)"
+    S13 = "slow_basic.slow_add_affine(p, p2)"
     S14 = "x2=basic.xform_affine_to_extended(p2)"
     S15 = "basic.add_extended(x, x2)"
     S16 = "basic.xrecover(basic.Bx)"
@@ -118,15 +118,15 @@ def run():
         p("decodepoint", [S1,S2,S3], S4)
         p("encodeint", [S1,S5big,S6], S7)
         p("decodeint", [S1,S5big], S6)
-        p("scalarmult_affine (big)", [S1,S2,S5big,S6], S8)
-        p("scalarmult_affine (medium)", [S1,S2,S5medium,S6], S8)
-        p("scalarmult_affine (small)", [S1,S2,S5small,S6], S8)
-        p("scalarmult_affine_2 (big)", [S1,S2,S5big,S6], S9)
-        p("scalarmult_affine_2 (medium)", [S1,S2,S5medium,S6], S9)
-        p("scalarmult_affine_2 (small)", [S1,S2,S5small,S6], S9)
+        p("slow_scalarmult_affine (big)", [S1,S2,S5big,S6], S8)
+        p("slow_scalarmult_affine (medium)", [S1,S2,S5medium,S6], S8)
+        p("slow_scalarmult_affine (small)", [S1,S2,S5small,S6], S8)
+        p("scalarmult_affine (big)", [S1,S2,S5big,S6], S9)
+        p("scalarmult_affine (medium)", [S1,S2,S5medium,S6], S9)
+        p("scalarmult_affine (small)", [S1,S2,S5small,S6], S9)
         p("xform_affine_to_extended", [S1,S2], S10)
         p("xform_extended_to_affine", [S1,S2,S10], S11)
-        p("add_affine", [S1,S2,S12], S13)
+        p("slow_add_affine", [S1,S2,S12], S13)
         p("add_extended", [S1,S2,S12,S10,S14], S15)
         p("add_extended_nonunified", [S1,S2,S12,S10,S14], S21)
         p("xrecover", [S1], S16)

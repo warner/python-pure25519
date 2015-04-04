@@ -3,10 +3,11 @@ import random
 from binascii import hexlify
 from pure25519.basic import (l, B, arbitrary_element, encodepoint,
                              password_to_scalar,
-                             add_affine, add_extended, _add_extended_nonunfied,
-                             scalarmult_affine, scalarmult_affine_2,
+                             add_extended, _add_extended_nonunfied,
+                             scalarmult_affine,
                              scalarmult_affine_to_extended,
                              xform_extended_to_affine, xform_affine_to_extended)
+from pure25519.slow_basic import slow_add_affine, slow_scalarmult_affine
 
 class Basic(unittest.TestCase):
     def assertElementsEqual(self, e1, e2, msg=None):
@@ -30,9 +31,9 @@ class Basic(unittest.TestCase):
             self.assertEqual(s, s2)
 
     def test_scalarmult(self):
-        add = add_affine
-        sm1 = scalarmult_affine
-        sm2 = scalarmult_affine_2
+        add = slow_add_affine
+        sm1 = slow_scalarmult_affine
+        sm2 = scalarmult_affine
         e0 = sm1(B, 0)
         self.assertElementsEqual(add(e0,e0), e0)
         e1 = sm1(B,1)
@@ -72,12 +73,12 @@ class Basic(unittest.TestCase):
         for i in range(100):
             seed = str(i).encode("ascii")
             s = password_to_scalar(seed)
-            e.append(scalarmult_affine_2(B, s))
+            e.append(scalarmult_affine(B, s))
         for i in range(100):
             x = random.choice(e) ; x_e = xform_affine_to_extended(x)
             y = random.choice(e) ; y_e = xform_affine_to_extended(y)
 
-            sum1 = add_affine(x, y)
+            sum1 = slow_add_affine(x, y)
             sum2 = xform_extended_to_affine(add_extended(x_e, y_e))
             self.assertElementsEqual(sum1, sum2)
             if x != y:

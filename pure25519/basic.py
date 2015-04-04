@@ -223,8 +223,8 @@ def password_to_scalar(pw):
 INT_TYPE = type(1<<256) # 'long' on py2, 'int' on py3
 
 class Scalar(INT_TYPE):
-    def __init__(self, val):
-        INT_TYPE.__init__(self, val % l)
+    def __new__(klass, val):
+        return INT_TYPE.__new__(klass, val % l)
     def __neg__(self):
         return INT_TYPE.__neg__(self) % l
     def __add__(self, other):
@@ -270,8 +270,8 @@ class Element:
         return Element(scalarmult_extended(self.XYTZ, int(s)))
     def to_bytes(self):
         return encodepoint(xform_extended_to_affine(self.XYTZ))
-    def __cmp__(self, other):
-        return cmp(self.to_bytes(), other.to_bytes())
+    def __eq__(self, other):
+        return self.to_bytes() == other.to_bytes()
 
     @classmethod
     def from_bytes(klass, bytes):

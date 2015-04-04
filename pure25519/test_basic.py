@@ -4,10 +4,10 @@ from binascii import hexlify
 from pure25519.basic import (l, B, arbitrary_element, encodepoint,
                              password_to_scalar,
                              add_extended, _add_extended_nonunfied,
-                             scalarmult_affine,
                              scalarmult_affine_to_extended,
                              xform_extended_to_affine, xform_affine_to_extended)
-from pure25519.slow_basic import slow_add_affine, slow_scalarmult_affine
+from pure25519.slow_basic import (slow_add_affine, slow_scalarmult_affine,
+                                  scalarmult_affine)
 
 class Basic(unittest.TestCase):
     def assertElementsEqual(self, e1, e2, msg=None):

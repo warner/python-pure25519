@@ -94,13 +94,6 @@ def scalarmult_extended (pt, n): # extended->extended
     _ = double_extended(scalarmult_extended(pt, n>>1))
     return _add_extended_nonunfied(_, pt) if n&1 else _
 
-def scalarmult_affine(pt, e): # affine->affine
-    e = e % l
-    return xform_extended_to_affine(
-            scalarmult_extended(
-             xform_affine_to_extended(pt),
-            e))
-
 def scalarmult_affine_to_extended(pt, n): # affine->extended
     assert len(pt) == 2 # affine
     n = n % l
@@ -182,15 +175,16 @@ def arbitrary_element(seed): # unknown DL
         # only about 50% of Y coordinates map to valid curve points (I think
         # the other half give you points on the "twist").
         if isoncurve(P):
+            P = Element(xform_affine_to_extended(P))
             # I'm worried about points of small order, but I'm not sure if I
             # should be.
-            assert scalarmult_affine(P, 2) != B
-            assert scalarmult_affine(P, 4) != B
-            assert scalarmult_affine(P, 8) != B
+            assert P.scalarmult(2) != Base
+            assert P.scalarmult(4) != Base
+            assert P.scalarmult(8) != Base
             # I think this clears the cofactor. If we don't multiply by at
             # least 4, then SPAKE2 fails roughly half the time.
-            P = scalarmult_affine(P, 8)
-            return P
+            P = P.scalarmult(8)
+            return xform_extended_to_affine(P.XYTZ)
         # increment our Y and try again until we find a valid point
         y = (y + 1) % q
     return P

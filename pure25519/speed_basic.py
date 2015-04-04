@@ -89,7 +89,7 @@ def p(name, setup_statements, statements):
 
 def run():
     S1 = "from pure25519 import basic, slow_basic"
-    S2 = "p=basic.scalarmult_affine(basic.B, 16*1000000000)"
+    S2 = "p=slow_basic.scalarmult_affine(basic.B, 16*1000000000)"
     S3 = "P=basic.encodepoint(p)"
     S4 = "basic.decodepoint(P)"
     S5big =   r"i = b'\xf0'+b'\xff'*31"
@@ -98,10 +98,10 @@ def run():
     S6 = "si=basic.decodeint(i)"
     S7 = "basic.encodeint(si)"
     S8 = "slow_basic.slow_scalarmult_affine(p, si)"
-    S9 = "basic.scalarmult_affine(p, si)"
+    S9 = "slow_basic.scalarmult_affine(p, si)"
     S10 = "x=basic.xform_affine_to_extended(p)"
     S11 = "basic.xform_extended_to_affine(x)"
-    S12 = "p2 = basic.scalarmult_affine(basic.B, 17)"
+    S12 = "p2 = slow_basic.scalarmult_affine(basic.B, 17)"
     S13 = "slow_basic.slow_add_affine(p, p2)"
     S14 = "x2=basic.xform_affine_to_extended(p2)"
     S15 = "basic.add_extended(x, x2)"

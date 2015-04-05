@@ -90,8 +90,24 @@ def add_extended(pt1, pt2): # extended->extended
 
 def scalarmult_extended (pt, n): # extended->extended
     n = n % l
+    if n==0:
+        return xform_affine_to_extended((0,1))
+    # scalarmult(0element, anything) results in both _ and pt being the same
+    # thing (the neutral 0element, namely the extended form of (0,1)), which
+    # violates _add_extended_nonunfied's precondition. So test for pt=0 and
+    # shortcut the operation without using an add. pt=0 means affine
+    # coordinates of (x=0,y=1). To get x=0 from extended coordinates, you
+    # need either X or Z to be 0. To get y=1, you need Y=Z, Y!=0, Z!=0. So to
+    # get pt0, we need X=0, Y=Z, and Y!=0
+    (X, Y, Z, T) = pt
+    if X==0 and Y==Z and Y!=0:
+        return xform_affine_to_extended((0,1))
+    _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
+    return _add_extended_nonunfied(_, pt) if n&1 else _
+
+def _scalarmult_extended_internal(pt, n): # extended->extended
     if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(scalarmult_extended(pt, n>>1))
+    _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
     return _add_extended_nonunfied(_, pt) if n&1 else _
 
 def scalarmult_affine_to_extended(pt, n): # affine->extended

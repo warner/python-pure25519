@@ -89,7 +89,7 @@ def add_extended(pt1, pt2): # extended->extended
     return (X3, Y3, Z3, T3)
 
 def scalarmult_extended (pt, n): # extended->extended
-    n = n % l
+    assert n >= 0
     if n==0:
         return xform_affine_to_extended((0,1))
     # scalarmult(0element, anything) results in both _ and pt being the same
@@ -175,19 +175,48 @@ def arbitrary_element(seed): # unknown DL
     y = int(binascii.hexlify(hseed), 16) % q
     while True:
         x = xrecover(y)
-        P = [x,y]
+        P = [x,y] # no attempt to use both "positive" and "negative" X
+
         # only about 50% of Y coordinates map to valid curve points (I think
         # the other half give you points on the "twist").
         if isoncurve(P):
             P = Element(xform_affine_to_extended(P))
-            # I'm worried about points of small order, but I'm not sure if I
-            # should be.
-            assert P.scalarmult(2) != Base
-            assert P.scalarmult(4) != Base
-            assert P.scalarmult(8) != Base
-            # I think this clears the cofactor. If we don't multiply by at
-            # least 4, then SPAKE2 fails roughly half the time.
+            # even if the point is on our curve, it may not be in our
+            # particular (order=l) subgroup. The curve has order 8*l, so an
+            # arbitrary point could have order 1,2,4,8,1*l,2*l,4*l,8*l
+            # (everything which divides the group order). There are phi(x)
+            # points with order x, so:
+            #  1 element of order 1: [(x=0,y=1)=Zero]
+            #  1 element of order 2 [(x=0,y=-1)]
+            #  2 elements of order 4
+            #  4 elements of order 8
+            #  l-1 elements of order l (including Base)
+            #  l-1 elements of order 2*l
+            #  2*(l-1) elements of order 4*l
+            #  4*(l-1) elements of order 8*l
+
+            # So 50% of random points will have order 8*l, 25% will have
+            # order 4*l, 13% order 2*l, and 13% will have our desired order
+            # 1*l (and a vanishingly small fraction will have 1/2/4/8). If we
+            # multiply any of the 8*l points by 2, we're sure to get an 4*l
+            # point (and multiplying a 4*l point by 2 gives us a 2*l point,
+            # and so on). Multiplying a 1*l point by 2 gives us a different
+            # 1*l point. So multiplying by 8 gets us from almost any point
+            # into a uniform point on the correct 1*l subgroup.
+
             P = P.scalarmult(8)
+
+            # if we got really unlucky and picked one of the 8 low-order
+            # points, multiplying by 8 will get us to the identity (Zero),
+            # which we check for explicitly.
+            if P == Zero:
+                continue
+
+            # Test that we're finally in the right group. We use
+            # _scalarmult_raw() because the normal scalarmult(x) does x%l,
+            # and that would bypass the check we care about
+            assert P._scalarmult_raw(l) == Zero
+
             return xform_extended_to_affine(P.XYTZ)
         # increment our Y and try again until we find a valid point
         y = (y + 1) % q
@@ -245,7 +274,9 @@ class Element:
     def subtract(self, other):
         return self.add(self.negate(other))
     def scalarmult(self, s):
-        return Element(scalarmult_extended(self.XYTZ, int(s)))
+        return Element(scalarmult_extended(self.XYTZ, int(s) % l))
+    def _scalarmult_raw(self, s):
+        return Element(scalarmult_extended(self.XYTZ, int(s))) # no %l
     def to_bytes(self):
         return encodepoint(xform_extended_to_affine(self.XYTZ))
     def __eq__(self, other):
@@ -259,3 +290,4 @@ class Element:
         return klass(xform_affine_to_extended(arbitrary_element(seed)))
 
 Base = Element(xform_affine_to_extended(B))
+Zero = Base.scalarmult(0) # the neutral (identity) element

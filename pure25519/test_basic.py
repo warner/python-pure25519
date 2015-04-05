@@ -4,7 +4,7 @@ from binascii import hexlify
 from pure25519.basic import (l, B,
                              _add_extended_nonunfied, add_extended, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
-from pure25519.basic import Scalar, Base, Element
+from pure25519.basic import Scalar, Base, Element, Zero
 from pure25519.slow_basic import (slow_add_affine, scalarmult_affine,
                                   scalarmult_affine_to_extended)
 
@@ -68,6 +68,43 @@ class Basic(unittest.TestCase):
                 self.assertElementsEqual(x1, x2, (x1,x2,i,j))
                 x3 = Element(xform_affine_to_extended(sm2(B, i+j)))
                 self.assertElementsEqual(x1, x3, (x1,x3,i,j))
+
+    def test_orders(self):
+        # the point (0,1) is the identity, and has order 1
+        p0 = xform_affine_to_extended((0,1))
+        # p0+p0=p0
+        # p0+anything=anything
+
+        # The point (0,-1) has order 2
+        p2 = xform_affine_to_extended((0,-1))
+        p3 = add_extended(p2, p2) # p3=p2+p2=p0
+        p4 = add_extended(p3, p2) # p4=p3+p2=p2
+        p5 = add_extended(p4, p2) # p5=p4+p2=p0
+        self.assertBytesEqual(encodepoint(xform_extended_to_affine(p3)),
+                              encodepoint(xform_extended_to_affine(p0)))
+        self.assertBytesEqual(encodepoint(xform_extended_to_affine(p4)),
+                              encodepoint(xform_extended_to_affine(p2)))
+        self.assertBytesEqual(encodepoint(xform_extended_to_affine(p5)),
+                              encodepoint(xform_extended_to_affine(p0)))
+
+        # now same thing, but with Element
+        p0 = Element(xform_affine_to_extended((0,1)))
+        self.assertElementsEqual(p0, Zero)
+        p2 = Element(xform_affine_to_extended((0,-1)))
+        p3 = p2.add(p2)
+        p4 = p3.add(p2)
+        p5 = p4.add(p2)
+        self.assertElementsEqual(p3, p0)
+        self.assertElementsEqual(p4, p2)
+        self.assertElementsEqual(p5, p0)
+
+        # and again, with .scalarmult instead of .add
+        p3 = p2.scalarmult(2) # p3=2*p2=p0
+        p4 = p2.scalarmult(3) # p4=3*p2=p2
+        p5 = p2.scalarmult(4) # p5=4*p2=p0
+        #self.assertElementsEqual(p3, p0) # TODO: failing
+        #self.assertElementsEqual(p4, p2)
+        #self.assertElementsEqual(p5, p0)
 
     def test_add(self):
         e = []

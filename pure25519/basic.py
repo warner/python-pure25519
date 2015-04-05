@@ -26,7 +26,7 @@ B = [Bx % q,By % q]
 
 def xform_affine_to_extended(pt):
     (x, y) = pt
-    return (x, y, 1, (x*y)%q) # (X,Y,Z,T)
+    return (x%q, y%q, 1, (x*y)%q) # (X,Y,Z,T)
 
 def xform_extended_to_affine(pt):
     (x, y, z, _) = pt

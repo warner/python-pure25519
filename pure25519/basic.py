@@ -110,18 +110,6 @@ def _scalarmult_extended_internal(pt, n): # extended->extended
     _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
     return _add_extended_nonunfied(_, pt) if n&1 else _
 
-def scalarmult_affine_to_extended(pt, n): # affine->extended
-    assert len(pt) == 2 # affine
-    n = n % l
-    if n==0: return xform_affine_to_extended((0,1))
-    xpt = xform_affine_to_extended(pt) # so Z=1
-    return _scalarmult_affine_to_extended_inner(xpt, n)
-
-def _scalarmult_affine_to_extended_inner(xpt, n):
-    if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(_scalarmult_affine_to_extended_inner(xpt, n>>1))
-    return _add_extended_nonunfied(_, xpt) if n&1 else _
-
 # encode/decode
 
 # scalars are encoded as 32-bytes little-endian

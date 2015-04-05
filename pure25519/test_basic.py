@@ -2,11 +2,11 @@ import unittest
 import random
 from binascii import hexlify
 from pure25519.basic import (l, B,
-                             _add_extended_nonunfied,
-                             scalarmult_affine_to_extended,
+                             _add_extended_nonunfied, add_extended, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
 from pure25519.basic import Scalar, Base, Element
-from pure25519.slow_basic import slow_add_affine, scalarmult_affine
+from pure25519.slow_basic import (slow_add_affine, scalarmult_affine,
+                                  scalarmult_affine_to_extended)
 
 class Basic(unittest.TestCase):
     def assertElementsEqual(self, e1, e2, msg=None):

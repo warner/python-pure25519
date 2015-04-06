@@ -1,7 +1,7 @@
 import unittest
 import random
 from binascii import hexlify
-from pure25519.basic import (l, B, _ElementOfUnknownGroup,
+from pure25519.basic import (q, l, B, _ElementOfUnknownGroup,
                              _add_extended_nonunfied, add_extended, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
 from pure25519.basic import Scalar, Base, Element, Zero
@@ -125,6 +125,9 @@ class Basic(unittest.TestCase):
                 sum3 = Element(_add_extended_nonunfied(x.XYTZ, y.XYTZ))
                 self.assertElementsEqual(sum1, sum3)
 
+    def test_bad_group(self):
+        b = encodepoint((0,-1%q)) # order 2
+        self.assertRaises(ValueError, Element.from_bytes, b)
 
 def element_from_affine(P):
     return Element(xform_affine_to_extended(P))

@@ -318,7 +318,13 @@ class Element:
 
     @classmethod
     def from_bytes(klass, bytes):
-        return klass(xform_affine_to_extended(decodepoint(bytes)))
+        XYTZ = xform_affine_to_extended(decodepoint(bytes))
+        P = _ElementOfUnknownGroup(XYTZ)
+        # This test will pass if the point is in the expected 1*l subgroup,
+        # or if it's Zero. It will fail if the point has order 2/4/8.
+        if not P._scalarmult_raw(l) == Zero:
+            raise ValueError("element is not in the right group")
+        return P.promote()
     @classmethod
     def arbitrary(klass, seed):
         return arbitrary_element(seed)

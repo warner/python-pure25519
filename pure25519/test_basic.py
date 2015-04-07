@@ -4,7 +4,7 @@ from binascii import hexlify
 from pure25519.basic import (Q, L, B, ElementOfUnknownGroup,
                              arbitrary_element, password_to_scalar,
                              bytes_to_element, bytes_to_unknown_group_element,
-                             _add_extended_nonunfied, add_extended, encodepoint,
+                             _add_elements_nonunfied, add_elements, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
 from pure25519.basic import Base, Element, Zero
 from pure25519.slow_basic import (slow_add_affine, scalarmult_affine,
@@ -79,9 +79,9 @@ class Basic(unittest.TestCase):
 
         # The point (0,-1) has order 2
         p2 = xform_affine_to_extended((0,-1))
-        p3 = add_extended(p2, p2) # p3=p2+p2=p0
-        p4 = add_extended(p3, p2) # p4=p3+p2=p2
-        p5 = add_extended(p4, p2) # p5=p4+p2=p0
+        p3 = add_elements(p2, p2) # p3=p2+p2=p0
+        p4 = add_elements(p3, p2) # p4=p3+p2=p2
+        p5 = add_elements(p4, p2) # p5=p4+p2=p0
         self.assertBytesEqual(encodepoint(xform_extended_to_affine(p3)),
                               encodepoint(xform_extended_to_affine(p0)))
         self.assertBytesEqual(encodepoint(xform_extended_to_affine(p4)),
@@ -132,7 +132,7 @@ class Basic(unittest.TestCase):
             sum2 = x.add(y)
             self.assertElementsEqual(sum1, sum2)
             if x != y:
-                sum3 = Element(_add_extended_nonunfied(x.XYTZ, y.XYTZ))
+                sum3 = Element(_add_elements_nonunfied(x.XYTZ, y.XYTZ))
                 self.assertElementsEqual(sum1, sum3)
 
     def test_bytes_to_element(self):

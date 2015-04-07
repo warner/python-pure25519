@@ -31,7 +31,7 @@ def xform_extended_to_affine(pt):
     (x, y, z, _) = pt
     return ((x*inv(z))%Q, (y*inv(z))%Q)
 
-def double_extended(pt): # extended->extended
+def double_element(pt): # extended->extended
     # dbl-2008-hwcd
     (X1, Y1, Z1, _) = pt
     A = (X1*X1)
@@ -49,7 +49,7 @@ def double_extended(pt): # extended->extended
     T3 = (E*H) % Q
     return (X3, Y3, Z3, T3)
 
-def add_extended(pt1, pt2): # extended->extended
+def add_elements(pt1, pt2): # extended->extended
     # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
     # unified, so it's safe for general-purpose addition..
     (X1, Y1, Z1, T1) = pt1
@@ -68,17 +68,17 @@ def add_extended(pt1, pt2): # extended->extended
     Z3 = (F*G) % Q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_extended_safe_slow(pt, n):
+def scalarmult_element_safe_slow(pt, n):
     # this form is slightly slower, but tolerates arbitrary points, including
     # those which are not in the main 1*L subgroup. This includes points of
     # order 1 (the neutral element Zero), 2, 4, and 8.
     assert n >= 0
     if n==0:
         return xform_affine_to_extended((0,1))
-    _ = double_extended(scalarmult_extended_safe_slow(pt, n>>1))
-    return add_extended(_, pt) if n&1 else _
+    _ = double_element(scalarmult_element_safe_slow(pt, n>>1))
+    return add_elements(_, pt) if n&1 else _
 
-def _add_extended_nonunfied(pt1, pt2): # extended->extended
+def _add_elements_nonunfied(pt1, pt2): # extended->extended
     # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2. About 10% faster than
     # the (unified) add-2008-hwcd-3, and safe to use inside scalarmult if you
     # aren't using points of order 1/2/4/8
@@ -98,7 +98,7 @@ def _add_extended_nonunfied(pt1, pt2): # extended->extended
     T3 = (E*H) % Q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_extended(pt, n): # extended->extended
+def scalarmult_element(pt, n): # extended->extended
     # This form only works properly when given points that are a member of
     # the main 1*L subgroup. It will give incorrect answers when called with
     # the points of order 1/2/4/8, including point Zero. (it will also work
@@ -106,8 +106,8 @@ def scalarmult_extended(pt, n): # extended->extended
     assert n >= 0
     if n==0:
         return xform_affine_to_extended((0,1))
-    _ = double_extended(scalarmult_extended(pt, n>>1))
-    return _add_extended_nonunfied(_, pt) if n&1 else _
+    _ = double_element(scalarmult_element(pt, n>>1))
+    return _add_elements_nonunfied(_, pt) if n&1 else _
 
 # points are encoded as 32-bytes little-endian, b255 is sign, b2b1b0 are 0
 
@@ -192,14 +192,14 @@ class ElementOfUnknownGroup:
 
 
     def add(self, other):
-        sum_XYTZ = add_extended(self.XYTZ, other.XYTZ)
+        sum_XYTZ = add_elements(self.XYTZ, other.XYTZ)
         if is_extended_zero(sum_XYTZ):
             return Zero
         return ElementOfUnknownGroup(sum_XYTZ)
 
     def scalarmult(self, s):
         assert s >= 0
-        product = scalarmult_extended_safe_slow(self.XYTZ, s)
+        product = scalarmult_element_safe_slow(self.XYTZ, s)
         return ElementOfUnknownGroup(product)
 
     def to_bytes(self):
@@ -234,12 +234,12 @@ class Element(ElementOfUnknownGroup):
             return Zero
         # scalarmult(s=1) gets you self, which is a subgroup member
         # scalarmult(s<grouporder) gets you a different subgroup member
-        return Element(scalarmult_extended(self.XYTZ, s))
+        return Element(scalarmult_element(self.XYTZ, s))
 
     # negation and subtraction only make sense for the main subgroup
     def negate(self):
         # slow. Prefer e.scalarmult(-pw) to e.scalarmult(pw).negate()
-        return Element(scalarmult_extended(self.XYTZ, L-2))
+        return Element(scalarmult_element(self.XYTZ, L-2))
     def subtract(self, other):
         return self.add(other.negate())
 

@@ -1,9 +1,9 @@
 
 from pure25519.basic import (inv, d, Q, L,
                              xform_extended_to_affine,
-                             scalarmult_extended,
+                             scalarmult_element,
                              xform_affine_to_extended,
-                             double_extended, _add_extended_nonunfied)
+                             double_element, _add_elements_nonunfied)
 
 # Affine Coordinates: only here to compare against faster versions
 
@@ -30,7 +30,7 @@ def slow_scalarmult_affine(A,e): # affine->affine
 def scalarmult_affine(pt, e): # affine->affine
     e = e % L
     return xform_extended_to_affine(
-            scalarmult_extended(
+            scalarmult_element(
              xform_affine_to_extended(pt),
             e))
 
@@ -43,5 +43,5 @@ def scalarmult_affine_to_extended(pt, n): # affine->extended
 
 def _scalarmult_affine_to_extended_inner(xpt, n):
     if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(_scalarmult_affine_to_extended_inner(xpt, n>>1))
-    return _add_extended_nonunfied(_, xpt) if n&1 else _
+    _ = double_element(_scalarmult_affine_to_extended_inner(xpt, n>>1))
+    return _add_elements_nonunfied(_, xpt) if n&1 else _

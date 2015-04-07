@@ -104,13 +104,13 @@ def run():
     S12 = "p2 = slow_basic.scalarmult_affine(basic.B, 17)"
     S13 = "slow_basic.slow_add_affine(p, p2)"
     S14 = "x2=basic.xform_affine_to_extended(p2)"
-    S15 = "basic.add_extended(x, x2)"
+    S15 = "basic.add_elements(x, x2)"
     S16 = "basic.xrecover(basic.Bx)"
     S17 = "basic.isoncurve(p)"
     S18 = "(si + si) % basic.Q"
     S19 = "(si * si) % basic.Q"
     S20 = "basic.inv(si)"
-    S21 = "basic._add_extended_nonunfied(x, x2)"
+    S21 = "basic._add_elements_nonunfied(x, x2)"
     S22 = "e=basic.bytes_to_unknown_group_element(P)"
     S23 = "e=basic.bytes_to_element(P)"
     S24 = "e=basic.arbitrary_element(b'seed')"
@@ -131,8 +131,8 @@ def run():
         p("xform_affine_to_extended", [S1,S2], S10)
         p("xform_extended_to_affine", [S1,S2,S10], S11)
         p("slow_add_affine", [S1,S2,S12], S13)
-        p("add_extended", [S1,S2,S12,S10,S14], S15)
-        p("add_extended_nonunified", [S1,S2,S12,S10,S14], S21)
+        p("add (extended)", [S1,S2,S12,S10,S14], S15)
+        p("add_nonunified (extended)", [S1,S2,S12,S10,S14], S21)
         p("xrecover", [S1], S16)
         p("isoncurve", [S1,S2], S17)
     if 1:

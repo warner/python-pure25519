@@ -89,27 +89,14 @@ def add_extended(pt1, pt2): # extended->extended
     Z3 = (F*G) % q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_extended (pt, n): # extended->extended
+def scalarmult_extended(pt, n): # extended->extended
     # This form only accepts points that are a member of the main 1*L
-    # subgroup, and the neutral element Zero. It will give incorrect answers
-    # when called with the points of order 2/4/8.
+    # subgroup. It will give incorrect answers when called with the points of
+    # order 1/2/4/8, including point Zero.
     assert n >= 0
-    # to tolerate pt=Zero, we need to use the safe form, because sooner or
-    # later we'll be asked to add pt (Zero) to the results of
-    # scalarmult_extended() (which will be Zero), and that will violate
-    # _add_extended_nonunfied()'s precondition. The affine form of Zero is
-    # (x=0,y=1). The extended form has X=0, Y=Z, and Y!=0.
-    (X, Y, Z, T) = pt
-    Y = Y % q
-    Z = Z % q
-    if X==0 and Y==Z and Y!=0:
-        return scalarmult_extended_safe_slow(pt, n)
-    return _scalarmult_extended_internal(pt, n)
-
-def _scalarmult_extended_internal(pt, n):
     if n==0:
         return xform_affine_to_extended((0,1))
-    _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
+    _ = double_extended(scalarmult_extended(pt, n>>1))
     return _add_extended_nonunfied(_, pt) if n&1 else _
 
 def scalarmult_extended_safe_slow(pt, n):

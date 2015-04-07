@@ -1,4 +1,4 @@
-import binascii
+import binascii, hashlib
 
 b = 256
 q = 2**255 - 19
@@ -33,6 +33,7 @@ def xform_extended_to_affine(pt):
     return ((x*inv(z))%q, (y*inv(z))%q)
 
 def _add_extended_nonunfied(pt1, pt2): # extended->extended
+    #return add_extended(pt1,pt2)
     # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2. About 10% faster than
     # the (unified) add-2008-hwcd-3, and safe to use inside scalarmult.
     (X1, Y1, Z1, T1) = pt1
@@ -89,26 +90,37 @@ def add_extended(pt1, pt2): # extended->extended
     return (X3, Y3, Z3, T3)
 
 def scalarmult_extended (pt, n): # extended->extended
+    # This form only accepts points that are a member of the main 1*l
+    # subgroup, and the neutral element Zero. It will give incorrect answers
+    # when called with the points of order 2/4/8.
     assert n >= 0
-    if n==0:
-        return xform_affine_to_extended((0,1))
-    # scalarmult(0element, anything) results in both _ and pt being the same
-    # thing (the neutral 0element, namely the extended form of (0,1)), which
-    # violates _add_extended_nonunfied's precondition. So test for pt=0 and
-    # shortcut the operation without using an add. pt=0 means affine
-    # coordinates of (x=0,y=1). To get x=0 from extended coordinates, you
-    # need either X or Z to be 0. To get y=1, you need Y=Z, Y!=0, Z!=0. So to
-    # get pt0, we need X=0, Y=Z, and Y!=0
+    # to tolerate pt=Zero, we need to use the safe form, because sooner or
+    # later we'll be asked to add pt (Zero) to the results of
+    # scalarmult_extended() (which will be Zero), and that will violate
+    # _add_extended_nonunfied()'s precondition. The affine form of Zero is
+    # (x=0,y=1). The extended form has X=0, Y=Z, and Y!=0.
     (X, Y, Z, T) = pt
+    Y = Y % q
+    Z = Z % q
     if X==0 and Y==Z and Y!=0:
+        return scalarmult_extended_safe_slow(pt, n)
+    return _scalarmult_extended_internal(pt, n)
+
+def _scalarmult_extended_internal(pt, n):
+    if n==0:
         return xform_affine_to_extended((0,1))
     _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
     return _add_extended_nonunfied(_, pt) if n&1 else _
 
-def _scalarmult_extended_internal(pt, n): # extended->extended
-    if n==0: return xform_affine_to_extended((0,1))
-    _ = double_extended(_scalarmult_extended_internal(pt, n>>1))
-    return _add_extended_nonunfied(_, pt) if n&1 else _
+def scalarmult_extended_safe_slow(pt, n):
+    # this form is slightly slower, but tolerates arbitrary points, including
+    # those which are not in the main 1*l subgroup. This includes points of
+    # order 1 (the neutral element Zero), 2, 4, and 8.
+    assert n >= 0
+    if n==0:
+        return xform_affine_to_extended((0,1))
+    _ = double_extended(scalarmult_extended_safe_slow(pt, n>>1))
+    return add_extended(_, pt) if n&1 else _
 
 # encode/decode
 
@@ -169,7 +181,25 @@ def random_scalar(entropy_f): # 0..l-1 inclusive
     oversized = int(binascii.hexlify(entropy_f(32+32)), 16)
     return oversized % l
 
-import hashlib
+class _ElementOfUnknownGroup:
+    def __init__(self, XYTZ):
+        assert isinstance(XYTZ, tuple)
+        assert len(XYTZ) == 4
+        self.XYTZ = XYTZ
+    def add(self, other):
+        return _ElementOfUnknownGroup(add_extended(self.XYTZ, other.XYTZ))
+    def scalarmult(self, s):
+        product = scalarmult_extended_safe_slow(self.XYTZ, int(s))
+        return _ElementOfUnknownGroup(product)
+    def _scalarmult_raw(self, s):
+        return self.scalarmult(s)
+    def to_bytes(self):
+        return encodepoint(xform_extended_to_affine(self.XYTZ))
+    def __eq__(self, other):
+        return self.to_bytes() == other.to_bytes()
+    def promote(self):
+        return Element(self.XYTZ)
+
 def arbitrary_element(seed): # unknown DL
     hseed = hashlib.sha512(seed).digest()
     y = int(binascii.hexlify(hseed), 16) % q
@@ -180,12 +210,15 @@ def arbitrary_element(seed): # unknown DL
         # only about 50% of Y coordinates map to valid curve points (I think
         # the other half give you points on the "twist").
         if isoncurve(P):
-            P = Element(xform_affine_to_extended(P))
+            P = _ElementOfUnknownGroup(xform_affine_to_extended(P))
             # even if the point is on our curve, it may not be in our
             # particular (order=l) subgroup. The curve has order 8*l, so an
             # arbitrary point could have order 1,2,4,8,1*l,2*l,4*l,8*l
-            # (everything which divides the group order). There are phi(x)
-            # points with order x, so:
+            # (everything which divides the group order).
+
+            # [I MAY BE COMPLETELY WRONG ABOUT THIS, but my brief statistical
+            # tests suggest it's not too far off] There are phi(x) points
+            # with order x, so:
             #  1 element of order 1: [(x=0,y=1)=Zero]
             #  1 element of order 2 [(x=0,y=-1)]
             #  2 elements of order 4
@@ -212,15 +245,18 @@ def arbitrary_element(seed): # unknown DL
             if P == Zero:
                 continue
 
-            # Test that we're finally in the right group. We use
-            # _scalarmult_raw() because the normal scalarmult(x) does x%l,
-            # and that would bypass the check we care about
+            # Test that we're finally in the right group. We want to
+            # scalarmult by l, and we want to *not* use the trick in
+            # Group.scalarmult() which does x%l, because that would bypass
+            # the check we care about. P is still an _ElementOfUnknownGroup,
+            # which doesn't use x%l because that's not correct for points
+            # outside the main group.
             assert P._scalarmult_raw(l) == Zero
 
-            return xform_extended_to_affine(P.XYTZ)
+            return P.promote()
         # increment our Y and try again until we find a valid point
         y = (y + 1) % q
-    return P
+    # never reached
 
 def password_to_scalar(pw):
     oversized = hashlib.sha512(pw).digest()
@@ -275,8 +311,6 @@ class Element:
         return self.add(self.negate(other))
     def scalarmult(self, s):
         return Element(scalarmult_extended(self.XYTZ, int(s) % l))
-    def _scalarmult_raw(self, s):
-        return Element(scalarmult_extended(self.XYTZ, int(s))) # no %l
     def to_bytes(self):
         return encodepoint(xform_extended_to_affine(self.XYTZ))
     def __eq__(self, other):
@@ -287,7 +321,7 @@ class Element:
         return klass(xform_affine_to_extended(decodepoint(bytes)))
     @classmethod
     def arbitrary(klass, seed):
-        return klass(xform_affine_to_extended(arbitrary_element(seed)))
+        return arbitrary_element(seed)
 
 Base = Element(xform_affine_to_extended(B))
 Zero = Base.scalarmult(0) # the neutral (identity) element

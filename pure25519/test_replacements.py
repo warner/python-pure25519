@@ -98,8 +98,7 @@ class Compare(unittest.TestCase):
 
     def test_decodepoint_2(self):
         for i in range(200):
-            P = basic.arbitrary_element(str(i).encode("ascii"))
-            P_s = basic.encodepoint(P)
+            P_s = basic.Base.scalarmult(i).to_bytes()
             self.assertEqual(self.orig_decodepoint_2(P_s),
                              self.new_decodepoint_2(P_s))
 
@@ -181,6 +180,6 @@ class Compare(unittest.TestCase):
 
     def test_encodepoint(self):
         for i in range(200):
-            P = basic.arbitrary_element(str(i).encode("ascii"))
+            P = basic.xform_extended_to_affine(basic.Base.scalarmult(i).XYTZ)
             self.assertEqual(self.orig_encodepoint(P),
                              self.new_encodepoint(P))

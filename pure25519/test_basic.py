@@ -1,7 +1,7 @@
 import unittest
 import random
 from binascii import hexlify
-from pure25519.basic import (l, B,
+from pure25519.basic import (l, B, _ElementOfUnknownGroup,
                              _add_extended_nonunfied, add_extended, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
 from pure25519.basic import Scalar, Base, Element, Zero
@@ -88,9 +88,9 @@ class Basic(unittest.TestCase):
                               encodepoint(xform_extended_to_affine(p0)))
 
         # now same thing, but with Element
-        p0 = Element(xform_affine_to_extended((0,1)))
+        p0 = _ElementOfUnknownGroup(xform_affine_to_extended((0,1)))
         self.assertElementsEqual(p0, Zero)
-        p2 = Element(xform_affine_to_extended((0,-1)))
+        p2 = _ElementOfUnknownGroup(xform_affine_to_extended((0,-1)))
         p3 = p2.add(p2)
         p4 = p3.add(p2)
         p5 = p4.add(p2)
@@ -99,12 +99,12 @@ class Basic(unittest.TestCase):
         self.assertElementsEqual(p5, p0)
 
         # and again, with .scalarmult instead of .add
-        p3 = p2.scalarmult(2) # p3=2*p2=p0
-        p4 = p2.scalarmult(3) # p4=3*p2=p2
-        p5 = p2.scalarmult(4) # p5=4*p2=p0
-        #self.assertElementsEqual(p3, p0) # TODO: failing
-        #self.assertElementsEqual(p4, p2)
-        #self.assertElementsEqual(p5, p0)
+        p3 = p2._scalarmult_raw(2) # p3=2*p2=p0
+        p4 = p2._scalarmult_raw(3) # p4=3*p2=p2
+        p5 = p2._scalarmult_raw(4) # p5=4*p2=p0
+        self.assertElementsEqual(p3, p0) # TODO: failing
+        self.assertElementsEqual(p4, p2)
+        self.assertElementsEqual(p5, p0)
 
     def test_add(self):
         e = []

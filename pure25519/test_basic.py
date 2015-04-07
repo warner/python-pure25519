@@ -1,7 +1,7 @@
 import unittest
 import random
 from binascii import hexlify
-from pure25519.basic import (q, L, B, ElementOfUnknownGroup,
+from pure25519.basic import (Q, L, B, ElementOfUnknownGroup,
                              arbitrary_element, password_to_scalar,
                              bytes_to_element, bytes_to_unknown_group_element,
                              _add_extended_nonunfied, add_extended, encodepoint,
@@ -142,7 +142,7 @@ class Basic(unittest.TestCase):
         self.assertFalse(isinstance(p, Element))
         self.assertIs(p, Zero)
 
-        b = encodepoint((0,-1%q)) # order 2
+        b = encodepoint((0,-1%Q)) # order 2
         self.assertRaises(ValueError, bytes_to_element, b)
         p = bytes_to_unknown_group_element(b)
         self.assertFalse(isinstance(p, Element))

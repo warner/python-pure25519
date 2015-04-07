@@ -78,7 +78,7 @@ class Compare(unittest.TestCase):
         clamp = (1 << 255) - 1
         y = unclamped & clamp
         x = basic.xrecover(y)
-        if x & 1 != bit(s,b-1): x = basic.q-x
+        if x & 1 != bit(s,b-1): x = basic.Q-x
         P = [x,y]
         if not basic.isoncurve(P):
             raise Exception("decoding point that is not on curve")
@@ -90,7 +90,7 @@ class Compare(unittest.TestCase):
         clamp = (1 << 255) - 1
         y = unclamped & clamp
         x = basic.xrecover(y)
-        if bool(x & 1) != bool(unclamped & (1<<255)): x = basic.q-x
+        if bool(x & 1) != bool(unclamped & (1<<255)): x = basic.Q-x
         P = [x,y]
         if not basic.isoncurve(P):
             raise Exception("decoding point that is not on curve")

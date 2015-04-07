@@ -12,7 +12,7 @@ Bad things about this module:
 
 * much slower than C
 * not written by djb, so probably horribly buggy and insecure
-* very much not constant-time
+* very much not constant-time: leaks hamming weights like crazy
 
 Good things about this module:
 

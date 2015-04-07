@@ -1,10 +1,10 @@
 import unittest
 from binascii import hexlify
 from pure25519.basic import Zero, ElementOfUnknownGroup
-from pure25519.basic import xform_affine_to_extended, l, bytes_to_unknown_group_element
+from pure25519.basic import xform_affine_to_extended, L, bytes_to_unknown_group_element
 
 ORDERS = {1: "1", 2: "2", 4: "4", 8: "8",
-          1*l: "1*L", 2*l: "2*L", 4*l: "4*L", 8*l: "8*L"}
+          1*L: "1*L", 2*L: "2*L", 4*L: "4*L", 8*L: "8*L"}
 def get_order(e):
     for o in sorted(ORDERS):
         if e.scalarmult(o) == Zero:
@@ -42,19 +42,19 @@ class Orders(unittest.TestCase):
         # (..,26) is in the right group (order L)
         b = b"\x1a" + b"\x00"*31
         p = bytes_to_unknown_group_element(b)
-        self.assertEqual(get_order(p), l)
+        self.assertEqual(get_order(p), L)
 
         # (..,35) is maybe order 2*L
         b = b"\x23" + b"\x00"*31
         p = bytes_to_unknown_group_element(b)
-        self.assertEqual(get_order(p), 2*l)
+        self.assertEqual(get_order(p), 2*L)
 
         # (..,48) is maybe order 4*L
         b = b"\x30" + b"\x00"*31
         p = bytes_to_unknown_group_element(b)
-        self.assertEqual(get_order(p), 4*l)
+        self.assertEqual(get_order(p), 4*L)
 
         # (..,55) is maybe order 8*L
         b = b"\x37" + b"\x00"*31
         p = bytes_to_unknown_group_element(b)
-        self.assertEqual(get_order(p), 8*l)
+        self.assertEqual(get_order(p), 8*L)

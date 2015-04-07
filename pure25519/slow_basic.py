@@ -1,5 +1,5 @@
 
-from pure25519.basic import (inv, d, q, l,
+from pure25519.basic import (inv, d, q, L,
                              xform_extended_to_affine,
                              scalarmult_extended,
                              xform_affine_to_extended,
@@ -18,7 +18,7 @@ def slow_add_affine(P,Q): # affine->affine
     return (x3 % q,y3 % q)
 
 def slow_scalarmult_affine(P,e): # affine->affine
-    e = e % l
+    e = e % L
     if e == 0: return [0,1]
     Q = slow_scalarmult_affine(P,e//2)
     Q = slow_add_affine(Q,Q)
@@ -28,7 +28,7 @@ def slow_scalarmult_affine(P,e): # affine->affine
 # other functions that are only here for speed comparisons
 
 def scalarmult_affine(pt, e): # affine->affine
-    e = e % l
+    e = e % L
     return xform_extended_to_affine(
             scalarmult_extended(
              xform_affine_to_extended(pt),
@@ -36,7 +36,7 @@ def scalarmult_affine(pt, e): # affine->affine
 
 def scalarmult_affine_to_extended(pt, n): # affine->extended
     assert len(pt) == 2 # affine
-    n = n % l
+    n = n % L
     if n==0: return xform_affine_to_extended((0,1))
     xpt = xform_affine_to_extended(pt) # so Z=1
     return _scalarmult_affine_to_extended_inner(xpt, n)

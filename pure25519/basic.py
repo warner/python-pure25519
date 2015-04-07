@@ -2,7 +2,7 @@ import binascii, hashlib
 
 b = 256
 q = 2**255 - 19
-l = 2**252 + 27742317777372353535851937790883648493
+L = 2**252 + 27742317777372353535851937790883648493
 
 def inv(x):
     return pow(x, q-2, q)
@@ -90,7 +90,7 @@ def add_extended(pt1, pt2): # extended->extended
     return (X3, Y3, Z3, T3)
 
 def scalarmult_extended (pt, n): # extended->extended
-    # This form only accepts points that are a member of the main 1*l
+    # This form only accepts points that are a member of the main 1*L
     # subgroup, and the neutral element Zero. It will give incorrect answers
     # when called with the points of order 2/4/8.
     assert n >= 0
@@ -114,7 +114,7 @@ def _scalarmult_extended_internal(pt, n):
 
 def scalarmult_extended_safe_slow(pt, n):
     # this form is slightly slower, but tolerates arbitrary points, including
-    # those which are not in the main 1*l subgroup. This includes points of
+    # those which are not in the main 1*L subgroup. This includes points of
     # order 1 (the neutral element Zero), 2, 4, and 8.
     assert n >= 0
     if n==0:
@@ -162,7 +162,7 @@ def bytes_to_scalar(s):
 
 def bytes_to_clamped_scalar(s):
     # Ed25519 private keys clamp the scalar to ensure two things:
-    #   1: integer value is in l/2 .. l, to avoid small-logarithm
+    #   1: integer value is in L/2 .. L, to avoid small-logarithm
     #      non-wraparaound
     #   2: low-order 3 bits are zero, so a small-subgroup attack won't learn
     #      any information
@@ -173,17 +173,17 @@ def bytes_to_clamped_scalar(s):
     a_clamped = (a_unclamped & AND_CLAMP) | OR_CLAMP
     return a_clamped
 
-def random_scalar(entropy_f): # 0..l-1 inclusive
+def random_scalar(entropy_f): # 0..L-1 inclusive
     # reduce the bias to a safe level by generating 256 extra bits
     oversized = int(binascii.hexlify(entropy_f(32+32)), 16)
-    return oversized % l
+    return oversized % L
 
 def password_to_scalar(pw):
     oversized = hashlib.sha512(pw).digest()
-    return int(binascii.hexlify(oversized), 16) % l
+    return int(binascii.hexlify(oversized), 16) % L
 
 def scalar_to_bytes(y):
-    y = y % l
+    y = y % L
     assert 0 <= y < 2**256
     return binascii.unhexlify("%064x" % y)[::-1]
 
@@ -199,7 +199,7 @@ def is_extended_zero(XYTZ):
     return False
 
 class ElementOfUnknownGroup:
-    # This is used for points of order 2,4,8,2*l,4*l,8*l
+    # This is used for points of order 2,4,8,2*L,4*L,8*L
     def __init__(self, XYTZ):
         assert isinstance(XYTZ, tuple)
         assert len(XYTZ) == 4
@@ -226,8 +226,8 @@ class ElementOfUnknownGroup:
 
 
 class Element(ElementOfUnknownGroup):
-    # this only holds elements in the main 1*l subgroup. It never holds Zero,
-    # or elements of order 1/2/4/8, or 2*l/4*l/8*l.
+    # this only holds elements in the main 1*L subgroup. It never holds Zero,
+    # or elements of order 1/2/4/8, or 2*L/4*L/8*L.
 
     def add(self, other):
         sum_element = ElementOfUnknownGroup.add(self, other)
@@ -243,7 +243,7 @@ class Element(ElementOfUnknownGroup):
     def scalarmult(self, s):
         # scalarmult of subgroup members can be done modulo the subgroup
         # order, and using the faster non-unified function.
-        s = s % l
+        s = s % L
         # scalarmult(s=0) gets you Zero
         if s == 0:
             return Zero
@@ -254,7 +254,7 @@ class Element(ElementOfUnknownGroup):
     # negation and subtraction only make sense for the main subgroup
     def negate(self):
         # slow. Prefer e.scalarmult(-pw) to e.scalarmult(pw).negate()
-        return Element(scalarmult_extended(self.XYTZ, l-2))
+        return Element(scalarmult_extended(self.XYTZ, L-2))
     def subtract(self, other):
         return self.add(other.negate())
 
@@ -288,8 +288,8 @@ def arbitrary_element(seed): # unknown DL
         if isoncurve(Pa):
             P = ElementOfUnknownGroup(xform_affine_to_extended(Pa))
             # even if the point is on our curve, it may not be in our
-            # particular (order=l) subgroup. The curve has order 8*l, so an
-            # arbitrary point could have order 1,2,4,8,1*l,2*l,4*l,8*l
+            # particular (order=L) subgroup. The curve has order 8*L, so an
+            # arbitrary point could have order 1,2,4,8,1*L,2*L,4*L,8*L
             # (everything which divides the group order).
 
             # [I MAY BE COMPLETELY WRONG ABOUT THIS, but my brief statistical
@@ -299,19 +299,19 @@ def arbitrary_element(seed): # unknown DL
             #  1 element of order 2 [(x=0,y=-1)]
             #  2 elements of order 4
             #  4 elements of order 8
-            #  l-1 elements of order l (including Base)
-            #  l-1 elements of order 2*l
-            #  2*(l-1) elements of order 4*l
-            #  4*(l-1) elements of order 8*l
+            #  L-1 elements of order L (including Base)
+            #  L-1 elements of order 2*L
+            #  2*(L-1) elements of order 4*L
+            #  4*(L-1) elements of order 8*L
 
-            # So 50% of random points will have order 8*l, 25% will have
-            # order 4*l, 13% order 2*l, and 13% will have our desired order
-            # 1*l (and a vanishingly small fraction will have 1/2/4/8). If we
-            # multiply any of the 8*l points by 2, we're sure to get an 4*l
-            # point (and multiplying a 4*l point by 2 gives us a 2*l point,
-            # and so on). Multiplying a 1*l point by 2 gives us a different
-            # 1*l point. So multiplying by 8 gets us from almost any point
-            # into a uniform point on the correct 1*l subgroup.
+            # So 50% of random points will have order 8*L, 25% will have
+            # order 4*L, 13% order 2*L, and 13% will have our desired order
+            # 1*L (and a vanishingly small fraction will have 1/2/4/8). If we
+            # multiply any of the 8*L points by 2, we're sure to get an 4*L
+            # point (and multiplying a 4*L point by 2 gives us a 2*L point,
+            # and so on). Multiplying a 1*L point by 2 gives us a different
+            # 1*L point. So multiplying by 8 gets us from almost any point
+            # into a uniform point on the correct 1*L subgroup.
 
             P8 = P.scalarmult(8)
 
@@ -322,12 +322,12 @@ def arbitrary_element(seed): # unknown DL
                 continue
 
             # Test that we're finally in the right group. We want to
-            # scalarmult by l, and we want to *not* use the trick in
-            # Group.scalarmult() which does x%l, because that would bypass
+            # scalarmult by L, and we want to *not* use the trick in
+            # Group.scalarmult() which does x%L, because that would bypass
             # the check we care about. P is still an _ElementOfUnknownGroup,
-            # which doesn't use x%l because that's not correct for points
+            # which doesn't use x%L because that's not correct for points
             # outside the main group.
-            assert is_extended_zero(P8.scalarmult(l).XYTZ)
+            assert is_extended_zero(P8.scalarmult(L).XYTZ)
 
             return Element(P8.XYTZ)
         # increment our Y and try again until we find a valid point
@@ -346,8 +346,8 @@ def bytes_to_element(bytes):
     P = bytes_to_unknown_group_element(bytes)
     if P is Zero:
         raise ValueError("element was Zero")
-    if not is_extended_zero(P.scalarmult(l).XYTZ):
+    if not is_extended_zero(P.scalarmult(L).XYTZ):
         raise ValueError("element is not in the right group")
-    # the point is in the expected 1*l subgroup, not in the 2/4/8 groups,
-    # or in the 2*l/4*l/8*l groups. Promote it to a correct-group Element.
+    # the point is in the expected 1*L subgroup, not in the 2/4/8 groups,
+    # or in the 2*L/4*L/8*L groups. Promote it to a correct-group Element.
     return Element(P.XYTZ)

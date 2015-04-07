@@ -1,7 +1,7 @@
 import unittest
 import random
 from binascii import hexlify
-from pure25519.basic import (q, l, B, ElementOfUnknownGroup,
+from pure25519.basic import (q, L, B, ElementOfUnknownGroup,
                              arbitrary_element, password_to_scalar,
                              bytes_to_element, bytes_to_unknown_group_element,
                              _add_extended_nonunfied, add_extended, encodepoint,
@@ -43,7 +43,7 @@ class Basic(unittest.TestCase):
         self.assertElementsEqual(e0.add(e0), e0)
         self.assertElementsEqual(e1, Base)
         self.assertElementsEqual(e0.add(e1), e1)
-        self.assertElementsEqual(Bsm(-5), Bsm(-5 % l))
+        self.assertElementsEqual(Bsm(-5), Bsm(-5 % L))
         # there was a bug, due to the add inside scalarmult being
         # non-unified, which caused e0.scalarmult(N) to not equal e0
         self.assertElementsEqual(e0.scalarmult(5), e0)

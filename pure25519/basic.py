@@ -1,4 +1,4 @@
-import binascii, hashlib
+import binascii, hashlib, itertools
 
 Q = 2**255 - 19
 L = 2**252 + 27742317777372353535851937790883648493
@@ -262,59 +262,61 @@ def arbitrary_element(seed): # unknown DL
     # TODO: if we don't need uniformity, maybe use just sha256 here?
     hseed = hashlib.sha512(seed).digest()
     y = int(binascii.hexlify(hseed), 16) % Q
-    while True:
-        x = xrecover(y)
-        Pa = [x,y] # no attempt to use both "positive" and "negative" X
+
+    # we try successive Y values until we find a valid point
+    for plus in itertools.count(0):
+        y_plus = (y + plus) % Q
+        x = xrecover(y_plus)
+        Pa = [x,y_plus] # no attempt to use both "positive" and "negative" X
 
         # only about 50% of Y coordinates map to valid curve points (I think
         # the other half give you points on the "twist").
-        if isoncurve(Pa):
-            P = ElementOfUnknownGroup(xform_affine_to_extended(Pa))
-            # even if the point is on our curve, it may not be in our
-            # particular (order=L) subgroup. The curve has order 8*L, so an
-            # arbitrary point could have order 1,2,4,8,1*L,2*L,4*L,8*L
-            # (everything which divides the group order).
+        if not isoncurve(Pa):
+            continue
 
-            # [I MAY BE COMPLETELY WRONG ABOUT THIS, but my brief statistical
-            # tests suggest it's not too far off] There are phi(x) points
-            # with order x, so:
-            #  1 element of order 1: [(x=0,y=1)=Zero]
-            #  1 element of order 2 [(x=0,y=-1)]
-            #  2 elements of order 4
-            #  4 elements of order 8
-            #  L-1 elements of order L (including Base)
-            #  L-1 elements of order 2*L
-            #  2*(L-1) elements of order 4*L
-            #  4*(L-1) elements of order 8*L
+        P = ElementOfUnknownGroup(xform_affine_to_extended(Pa))
+        # even if the point is on our curve, it may not be in our particular
+        # (order=L) subgroup. The curve has order 8*L, so an arbitrary point
+        # could have order 1,2,4,8,1*L,2*L,4*L,8*L (everything which divides
+        # the group order).
 
-            # So 50% of random points will have order 8*L, 25% will have
-            # order 4*L, 13% order 2*L, and 13% will have our desired order
-            # 1*L (and a vanishingly small fraction will have 1/2/4/8). If we
-            # multiply any of the 8*L points by 2, we're sure to get an 4*L
-            # point (and multiplying a 4*L point by 2 gives us a 2*L point,
-            # and so on). Multiplying a 1*L point by 2 gives us a different
-            # 1*L point. So multiplying by 8 gets us from almost any point
-            # into a uniform point on the correct 1*L subgroup.
+        # [I MAY BE COMPLETELY WRONG ABOUT THIS, but my brief statistical
+        # tests suggest it's not too far off] There are phi(x) points with
+        # order x, so:
+        #  1 element of order 1: [(x=0,y=1)=Zero]
+        #  1 element of order 2 [(x=0,y=-1)]
+        #  2 elements of order 4
+        #  4 elements of order 8
+        #  L-1 elements of order L (including Base)
+        #  L-1 elements of order 2*L
+        #  2*(L-1) elements of order 4*L
+        #  4*(L-1) elements of order 8*L
 
-            P8 = P.scalarmult(8)
+        # So 50% of random points will have order 8*L, 25% will have order
+        # 4*L, 13% order 2*L, and 13% will have our desired order 1*L (and a
+        # vanishingly small fraction will have 1/2/4/8). If we multiply any
+        # of the 8*L points by 2, we're sure to get an 4*L point (and
+        # multiplying a 4*L point by 2 gives us a 2*L point, and so on).
+        # Multiplying a 1*L point by 2 gives us a different 1*L point. So
+        # multiplying by 8 gets us from almost any point into a uniform point
+        # on the correct 1*L subgroup.
 
-            # if we got really unlucky and picked one of the 8 low-order
-            # points, multiplying by 8 will get us to the identity (Zero),
-            # which we check for explicitly.
-            if is_extended_zero(P8.XYTZ):
-                continue
+        P8 = P.scalarmult(8)
 
-            # Test that we're finally in the right group. We want to
-            # scalarmult by L, and we want to *not* use the trick in
-            # Group.scalarmult() which does x%L, because that would bypass
-            # the check we care about. P is still an _ElementOfUnknownGroup,
-            # which doesn't use x%L because that's not correct for points
-            # outside the main group.
-            assert is_extended_zero(P8.scalarmult(L).XYTZ)
+        # if we got really unlucky and picked one of the 8 low-order points,
+        # multiplying by 8 will get us to the identity (Zero), which we check
+        # for explicitly.
+        if is_extended_zero(P8.XYTZ):
+            continue
 
-            return Element(P8.XYTZ)
-        # increment our Y and try again until we find a valid point
-        y = (y + 1) % Q
+        # Test that we're finally in the right group. We want to scalarmult
+        # by L, and we want to *not* use the trick in Group.scalarmult()
+        # which does x%L, because that would bypass the check we care about.
+        # P is still an _ElementOfUnknownGroup, which doesn't use x%L because
+        # that's not correct for points outside the main group.
+        assert is_extended_zero(P8.scalarmult(L).XYTZ)
+
+        return Element(P8.XYTZ)
     # never reached
 
 def bytes_to_unknown_group_element(bytes):

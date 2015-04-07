@@ -1,5 +1,7 @@
 
-from pure25519.basic import bytes_to_clamped_scalar, bytes_to_scalar, scalar_to_bytes, bytes_to_element, Base
+from pure25519.basic import (bytes_to_clamped_scalar,
+                             bytes_to_scalar, scalar_to_bytes,
+                             bytes_to_element, Base)
 import hashlib, binascii
 
 def H(m):

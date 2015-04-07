@@ -51,7 +51,7 @@ def double_element(pt): # extended->extended
 
 def add_elements(pt1, pt2): # extended->extended
     # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
-    # unified, so it's safe for general-purpose addition..
+    # unified, so it's safe for general-purpose addition
     (X1, Y1, Z1, T1) = pt1
     (X2, Y2, Z2, T2) = pt2
     A = ((Y1-X1)*(Y2-X2)) % Q

@@ -191,12 +191,16 @@ class ElementOfUnknownGroup:
         self.XYTZ = XYTZ
 
     def add(self, other):
+        if not isinstance(other, ElementOfUnknownGroup):
+            raise TypeError("elements can only be added to other elements")
         sum_XYTZ = add_elements(self.XYTZ, other.XYTZ)
         if is_extended_zero(sum_XYTZ):
             return Zero
         return ElementOfUnknownGroup(sum_XYTZ)
 
     def scalarmult(self, s):
+        if isinstance(s, ElementOfUnknownGroup):
+            raise TypeError("elements cannot be multiplied together")
         assert s >= 0
         product = scalarmult_element_safe_slow(self.XYTZ, s)
         return ElementOfUnknownGroup(product)
@@ -213,6 +217,8 @@ class Element(ElementOfUnknownGroup):
     # or elements of order 1/2/4/8, or 2*L/4*L/8*L.
 
     def add(self, other):
+        if not isinstance(other, ElementOfUnknownGroup):
+            raise TypeError("elements can only be added to other elements")
         sum_element = ElementOfUnknownGroup.add(self, other)
         if sum_element is Zero:
             return sum_element
@@ -224,6 +230,8 @@ class Element(ElementOfUnknownGroup):
         return sum_element
 
     def scalarmult(self, s):
+        if isinstance(s, ElementOfUnknownGroup):
+            raise TypeError("elements cannot be multiplied together")
         # scalarmult of subgroup members can be done modulo the subgroup
         # order, and using the faster non-unified function.
         s = s % L

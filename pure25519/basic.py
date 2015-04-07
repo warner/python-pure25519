@@ -190,7 +190,6 @@ class ElementOfUnknownGroup:
         assert len(XYTZ) == 4
         self.XYTZ = XYTZ
 
-
     def add(self, other):
         sum_XYTZ = add_elements(self.XYTZ, other.XYTZ)
         if is_extended_zero(sum_XYTZ):
@@ -208,7 +207,6 @@ class ElementOfUnknownGroup:
         return self.to_bytes() == other.to_bytes()
     def __ne__(self, other):
         return not self == other
-
 
 class Element(ElementOfUnknownGroup):
     # this only holds elements in the main 1*L subgroup. It never holds Zero,

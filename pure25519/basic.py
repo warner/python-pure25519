@@ -32,26 +32,6 @@ def xform_extended_to_affine(pt):
     (x, y, z, _) = pt
     return ((x*inv(z))%q, (y*inv(z))%q)
 
-def _add_extended_nonunfied(pt1, pt2): # extended->extended
-    #return add_extended(pt1,pt2)
-    # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2. About 10% faster than
-    # the (unified) add-2008-hwcd-3, and safe to use inside scalarmult.
-    (X1, Y1, Z1, T1) = pt1
-    (X2, Y2, Z2, T2) = pt2
-    A = ((Y1-X1)*(Y2+X2)) % q
-    B = ((Y1+X1)*(Y2-X2)) % q
-    C = (Z1*2*T2) % q
-    D = (T1*2*Z2) % q
-    E = (D+C) % q
-    F = (B-A) % q
-    G = (B+A) % q
-    H = (D-C) % q
-    X3 = (E*F) % q
-    Y3 = (G*H) % q
-    Z3 = (F*G) % q
-    T3 = (E*H) % q
-    return (X3, Y3, Z3, T3)
-
 def double_extended(pt): # extended->extended
     # dbl-2008-hwcd
     (X1, Y1, Z1, _) = pt
@@ -89,16 +69,6 @@ def add_extended(pt1, pt2): # extended->extended
     Z3 = (F*G) % q
     return (X3, Y3, Z3, T3)
 
-def scalarmult_extended(pt, n): # extended->extended
-    # This form only accepts points that are a member of the main 1*L
-    # subgroup. It will give incorrect answers when called with the points of
-    # order 1/2/4/8, including point Zero.
-    assert n >= 0
-    if n==0:
-        return xform_affine_to_extended((0,1))
-    _ = double_extended(scalarmult_extended(pt, n>>1))
-    return _add_extended_nonunfied(_, pt) if n&1 else _
-
 def scalarmult_extended_safe_slow(pt, n):
     # this form is slightly slower, but tolerates arbitrary points, including
     # those which are not in the main 1*L subgroup. This includes points of
@@ -109,9 +79,38 @@ def scalarmult_extended_safe_slow(pt, n):
     _ = double_extended(scalarmult_extended_safe_slow(pt, n>>1))
     return add_extended(_, pt) if n&1 else _
 
-# encode/decode
+def _add_extended_nonunfied(pt1, pt2): # extended->extended
+    # add-2008-hwcd-4 : NOT unified, only for pt1!=pt2. About 10% faster than
+    # the (unified) add-2008-hwcd-3, and safe to use inside scalarmult if you
+    # aren't using points of order 1/2/4/8
+    (X1, Y1, Z1, T1) = pt1
+    (X2, Y2, Z2, T2) = pt2
+    A = ((Y1-X1)*(Y2+X2)) % q
+    B = ((Y1+X1)*(Y2-X2)) % q
+    C = (Z1*2*T2) % q
+    D = (T1*2*Z2) % q
+    E = (D+C) % q
+    F = (B-A) % q
+    G = (B+A) % q
+    H = (D-C) % q
+    X3 = (E*F) % q
+    Y3 = (G*H) % q
+    Z3 = (F*G) % q
+    T3 = (E*H) % q
+    return (X3, Y3, Z3, T3)
 
-# points are encoded as 32-bytes little-endian, b2b1 are 0, b0 is sign
+def scalarmult_extended(pt, n): # extended->extended
+    # This form only works properly when given points that are a member of
+    # the main 1*L subgroup. It will give incorrect answers when called with
+    # the points of order 1/2/4/8, including point Zero. (it will also work
+    # properly when given points of order 2*L/4*L/8*L)
+    assert n >= 0
+    if n==0:
+        return xform_affine_to_extended((0,1))
+    _ = double_extended(scalarmult_extended(pt, n>>1))
+    return _add_extended_nonunfied(_, pt) if n&1 else _
+
+# points are encoded as 32-bytes little-endian, b255 is sign, b2b1b0 are 0
 
 def encodepoint(P):
     x = P[0]
@@ -141,7 +140,7 @@ def decodepoint(s):
     if not isoncurve(P): raise NotOnCurve("decoding point that is not on curve")
     return P
 
-# Scalar utilities. scalars are encoded as 32-bytes little-endian
+# scalars are encoded as 32-bytes little-endian
 
 def bytes_to_scalar(s):
     assert len(s) == 32, len(s)

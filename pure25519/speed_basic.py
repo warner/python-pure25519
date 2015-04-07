@@ -111,6 +111,10 @@ def run():
     S19 = "(si * si) % basic.q"
     S20 = "basic.inv(si)"
     S21 = "basic._add_extended_nonunfied(x, x2)"
+    S22 = "e=basic.bytes_to_unknown_group_element(P)"
+    S23 = "e=basic.bytes_to_element(P)"
+    S24 = "e=basic.arbitrary_element(b'seed')"
+    S25 = "e.scalarmult(si)"
 
     print("speed_basic")
     if 1:
@@ -137,6 +141,12 @@ def run():
         p("field_mul (medium)", [S1,S5medium,S6], S19)
         p("field_mul (small)", [S1,S5small,S6], S19)
         p("field_inv", [S1,S5medium,S6], S20)
+    if 1:
+        p("bytes_to_unknown_group_element", [S1,S2,S3], S22)
+        p("bytes_to_element", [S1,S2,S3], S23)
+        p("arbitrary_element", [S1], S24)
+        p("scalarmult(unknown-medium)", [S1,S2,S3,S22,S5medium,S6], S25)
+        p("scalarmult(medium)", [S1,S2,S3,S23,S5medium,S6], S25)
 
 if __name__ == "__main__":
     run()

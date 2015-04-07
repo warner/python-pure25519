@@ -95,8 +95,8 @@ def run():
     S5big =   r"i = b'\xf0'+b'\xff'*31"
     S5medium =   r"i = b'\xf0'+b'\x55'*31"
     S5small = r"i = b'\xf0'+b'\x00'*31"
-    S6 = "si=basic.decodeint(i)"
-    S7 = "basic.encodeint(si)"
+    S6 = "si=basic.bytes_to_scalar(i)"
+    S7 = "basic.scalar_to_bytes(si)"
     S8 = "slow_basic.slow_scalarmult_affine(p, si)"
     S9 = "slow_basic.scalarmult_affine(p, si)"
     S10 = "x=basic.xform_affine_to_extended(p)"
@@ -116,8 +116,8 @@ def run():
     if 1:
         p("encodepoint", [S1,S2], S3)
         p("decodepoint", [S1,S2,S3], S4)
-        p("encodeint", [S1,S5big,S6], S7)
-        p("decodeint", [S1,S5big], S6)
+        p("scalar_to_bytes", [S1,S5big,S6], S7)
+        p("bytes_to_scalar", [S1,S5big], S6)
         p("slow_scalarmult_affine (big)", [S1,S2,S5big,S6], S8)
         p("slow_scalarmult_affine (medium)", [S1,S2,S5medium,S6], S8)
         p("slow_scalarmult_affine (small)", [S1,S2,S5small,S6], S8)

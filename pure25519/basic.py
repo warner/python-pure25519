@@ -124,29 +124,6 @@ def scalarmult_extended_safe_slow(pt, n):
 
 # encode/decode
 
-# scalars are encoded as 32-bytes little-endian
-
-def encodeint(y):
-    assert 0 <= y < 2**256
-    return binascii.unhexlify("%064x" % y)[::-1]
-
-def decodeint(s):
-    assert len(s) == 32, len(s)
-    return int(binascii.hexlify(s[::-1]), 16)
-
-def clamped_decodeint(s):
-    # clamp the scalar to ensure two things:
-    #   1: integer value is in l/2 .. l, to avoid small-logarithm
-    #      non-wraparaound
-    #   2: low-order 3 bits are zero, so a small-subgroup attack won't learn
-    #      any information
-    # set the top two bits to 01, and the bottom three to 000
-    a_unclamped = decodeint(s)
-    AND_CLAMP = (1<<254) - 1 - 7
-    OR_CLAMP = (1<<254)
-    a_clamped = (a_unclamped & AND_CLAMP) | OR_CLAMP
-    return a_clamped
-
 # points are encoded as 32-bytes little-endian, b2b1 are 0, b0 is sign
 
 def encodepoint(P):
@@ -164,6 +141,9 @@ def isoncurve(P):
     y = P[1]
     return (-x*x + y*y - 1 - d*x*x*y*y) % q == 0
 
+class NotOnCurve(Exception):
+    pass
+
 def decodepoint(s):
     unclamped = int(binascii.hexlify(s[:32][::-1]), 16)
     clamp = (1 << 255) - 1
@@ -171,46 +151,142 @@ def decodepoint(s):
     x = xrecover(y)
     if bool(x & 1) != bool(unclamped & (1<<255)): x = q-x
     P = [x,y]
-    if not isoncurve(P): raise Exception("decoding point that is not on curve")
+    if not isoncurve(P): raise NotOnCurve("decoding point that is not on curve")
     return P
 
-# utilities
+# Scalar utilities. scalars are encoded as 32-bytes little-endian
+
+def bytes_to_scalar(s):
+    assert len(s) == 32, len(s)
+    return int(binascii.hexlify(s[::-1]), 16)
+
+def bytes_to_clamped_scalar(s):
+    # Ed25519 private keys clamp the scalar to ensure two things:
+    #   1: integer value is in l/2 .. l, to avoid small-logarithm
+    #      non-wraparaound
+    #   2: low-order 3 bits are zero, so a small-subgroup attack won't learn
+    #      any information
+    # set the top two bits to 01, and the bottom three to 000
+    a_unclamped = bytes_to_scalar(s)
+    AND_CLAMP = (1<<254) - 1 - 7
+    OR_CLAMP = (1<<254)
+    a_clamped = (a_unclamped & AND_CLAMP) | OR_CLAMP
+    return a_clamped
 
 def random_scalar(entropy_f): # 0..l-1 inclusive
     # reduce the bias to a safe level by generating 256 extra bits
     oversized = int(binascii.hexlify(entropy_f(32+32)), 16)
     return oversized % l
 
-class _ElementOfUnknownGroup:
+def password_to_scalar(pw):
+    oversized = hashlib.sha512(pw).digest()
+    return int(binascii.hexlify(oversized), 16) % l
+
+def scalar_to_bytes(y):
+    y = y % l
+    assert 0 <= y < 2**256
+    return binascii.unhexlify("%064x" % y)[::-1]
+
+# Elements, of various orders
+
+def is_extended_zero(XYTZ):
+    # catch Zero
+    (X, Y, Z, T) = XYTZ
+    Y = Y % q
+    Z = Z % q
+    if X==0 and Y==Z and Y!=0:
+        return True
+    return False
+
+class ElementOfUnknownGroup:
+    # This is used for points of order 2,4,8,2*l,4*l,8*l
     def __init__(self, XYTZ):
         assert isinstance(XYTZ, tuple)
         assert len(XYTZ) == 4
         self.XYTZ = XYTZ
+
+
     def add(self, other):
-        return _ElementOfUnknownGroup(add_extended(self.XYTZ, other.XYTZ))
+        sum_XYTZ = add_extended(self.XYTZ, other.XYTZ)
+        if is_extended_zero(sum_XYTZ):
+            return Zero
+        return ElementOfUnknownGroup(sum_XYTZ)
+
     def scalarmult(self, s):
-        product = scalarmult_extended_safe_slow(self.XYTZ, int(s))
-        return _ElementOfUnknownGroup(product)
-    def _scalarmult_raw(self, s):
-        return self.scalarmult(s)
+        assert s >= 0
+        product = scalarmult_extended_safe_slow(self.XYTZ, s)
+        return ElementOfUnknownGroup(product)
+
     def to_bytes(self):
         return encodepoint(xform_extended_to_affine(self.XYTZ))
     def __eq__(self, other):
         return self.to_bytes() == other.to_bytes()
-    def promote(self):
-        return Element(self.XYTZ)
+    def __ne__(self, other):
+        return not self == other
+
+
+class Element(ElementOfUnknownGroup):
+    # this only holds elements in the main 1*l subgroup. It never holds Zero,
+    # or elements of order 1/2/4/8, or 2*l/4*l/8*l.
+
+    def add(self, other):
+        sum_element = ElementOfUnknownGroup.add(self, other)
+        if sum_element is Zero:
+            return sum_element
+        if isinstance(other, Element):
+            # adding two subgroup elements results in another subgroup
+            # element, or Zero, and we've already excluded Zero
+            return Element(sum_element.XYTZ)
+        # not necessarily a subgroup member, so assume not
+        return sum_element
+
+    def scalarmult(self, s):
+        # scalarmult of subgroup members can be done modulo the subgroup
+        # order, and using the faster non-unified function.
+        s = s % l
+        # scalarmult(s=0) gets you Zero
+        if s == 0:
+            return Zero
+        # scalarmult(s=1) gets you self, which is a subgroup member
+        # scalarmult(s<grouporder) gets you a different subgroup member
+        return Element(scalarmult_extended(self.XYTZ, s))
+
+    # negation and subtraction only make sense for the main subgroup
+    def negate(self):
+        # slow. Prefer e.scalarmult(-pw) to e.scalarmult(pw).negate()
+        return Element(scalarmult_extended(self.XYTZ, l-2))
+    def subtract(self, other):
+        return self.add(other.negate())
+
+class _ZeroElement(ElementOfUnknownGroup):
+    def add(self, other):
+        return other # zero+anything = anything
+    def scalarmult(self, s):
+        return self # zero*anything = zero
+    def negate(self):
+        return self # -zero = zero
+    def subtract(self, other):
+        return self.add(other.negate())
+
+
+Base = Element(xform_affine_to_extended(B))
+Zero = _ZeroElement(xform_affine_to_extended((0,1))) # the neutral (identity) element
+
+_zero_bytes = Zero.to_bytes()
+
 
 def arbitrary_element(seed): # unknown DL
+    # TODO: if we don't need uniformity, maybe use just sha256 here?
     hseed = hashlib.sha512(seed).digest()
     y = int(binascii.hexlify(hseed), 16) % q
     while True:
         x = xrecover(y)
-        P = [x,y] # no attempt to use both "positive" and "negative" X
+        Pa = [x,y] # no attempt to use both "positive" and "negative" X
 
         # only about 50% of Y coordinates map to valid curve points (I think
         # the other half give you points on the "twist").
-        if isoncurve(P):
-            P = _ElementOfUnknownGroup(xform_affine_to_extended(P))
+        if isoncurve(Pa):
+            P = ElementOfUnknownGroup(xform_affine_to_extended(Pa))
             # even if the point is on our curve, it may not be in our
             # particular (order=l) subgroup. The curve has order 8*l, so an
             # arbitrary point could have order 1,2,4,8,1*l,2*l,4*l,8*l
@@ -237,12 +313,12 @@ def arbitrary_element(seed): # unknown DL
             # 1*l point. So multiplying by 8 gets us from almost any point
             # into a uniform point on the correct 1*l subgroup.
 
-            P = P.scalarmult(8)
+            P8 = P.scalarmult(8)
 
             # if we got really unlucky and picked one of the 8 low-order
             # points, multiplying by 8 will get us to the identity (Zero),
             # which we check for explicitly.
-            if P == Zero:
+            if is_extended_zero(P8.XYTZ):
                 continue
 
             # Test that we're finally in the right group. We want to
@@ -251,83 +327,27 @@ def arbitrary_element(seed): # unknown DL
             # the check we care about. P is still an _ElementOfUnknownGroup,
             # which doesn't use x%l because that's not correct for points
             # outside the main group.
-            assert P._scalarmult_raw(l) == Zero
+            assert is_extended_zero(P8.scalarmult(l).XYTZ)
 
-            return P.promote()
+            return Element(P8.XYTZ)
         # increment our Y and try again until we find a valid point
         y = (y + 1) % q
     # never reached
 
-def password_to_scalar(pw):
-    oversized = hashlib.sha512(pw).digest()
-    return int(binascii.hexlify(oversized), 16) % l
+def bytes_to_unknown_group_element(bytes):
+    # this accepts all elements, including Zero and wrong-subgroup ones
+    if bytes == _zero_bytes:
+        return Zero
+    XYTZ = xform_affine_to_extended(decodepoint(bytes))
+    return ElementOfUnknownGroup(XYTZ)
 
-
-INT_TYPE = type(1<<256) # 'long' on py2, 'int' on py3
-
-class Scalar(INT_TYPE):
-    def __new__(klass, val):
-        return INT_TYPE.__new__(klass, val % l)
-    def __neg__(self):
-        return INT_TYPE.__neg__(self) % l
-    def __add__(self, other):
-        return self.__add__(self, other) % l
-    def __sub__(self, other):
-        return self.__sub__(self, other) % l
-    def __mul__(self, other):
-        return self.__mul__(self, other) % l
-    def __div__(self, other):
-        raise TypeError("Scalars cannot be divided, only +/-/*")
-    def __divmod__(self, other):
-        raise TypeError("Scalars cannot be divided, only +/-/*")
-
-    def to_bytes(self):
-        return encodeint(self % l)
-
-    @classmethod
-    def random(klass, entropy_f):
-        return klass(random_scalar(entropy_f))
-    @classmethod
-    def from_bytes(klass, bytes):
-        return decodeint(bytes)
-    @classmethod
-    def from_password(klass, pw):
-        return klass(password_to_scalar(pw))
-    @classmethod
-    def clamped_from_bytes(klass, bytes):
-        return klass(clamped_decodeint(bytes))
-
-class Element:
-    def __init__(self, XYTZ):
-        assert isinstance(XYTZ, tuple)
-        assert len(XYTZ) == 4
-        self.XYTZ = XYTZ
-    def add(self, other):
-        return Element(add_extended(self.XYTZ, other.XYTZ))
-    def negate(self):
-        # slow. Prefer e.scalarmult(-pw) to e.scalarmult(pw).negate()
-        return Element(scalarmult_extended(self.XYTZ, l-2))
-    def subtract(self, other):
-        return self.add(self.negate(other))
-    def scalarmult(self, s):
-        return Element(scalarmult_extended(self.XYTZ, int(s) % l))
-    def to_bytes(self):
-        return encodepoint(xform_extended_to_affine(self.XYTZ))
-    def __eq__(self, other):
-        return self.to_bytes() == other.to_bytes()
-
-    @classmethod
-    def from_bytes(klass, bytes):
-        XYTZ = xform_affine_to_extended(decodepoint(bytes))
-        P = _ElementOfUnknownGroup(XYTZ)
-        # This test will pass if the point is in the expected 1*l subgroup,
-        # or if it's Zero. It will fail if the point has order 2/4/8.
-        if not P._scalarmult_raw(l) == Zero:
-            raise ValueError("element is not in the right group")
-        return P.promote()
-    @classmethod
-    def arbitrary(klass, seed):
-        return arbitrary_element(seed)
-
-Base = Element(xform_affine_to_extended(B))
-Zero = Base.scalarmult(0) # the neutral (identity) element
+def bytes_to_element(bytes):
+    # this strictly only accepts elements in the right subgroup
+    P = bytes_to_unknown_group_element(bytes)
+    if P is Zero:
+        raise ValueError("element was Zero")
+    if not is_extended_zero(P.scalarmult(l).XYTZ):
+        raise ValueError("element is not in the right group")
+    # the point is in the expected 1*l subgroup, not in the 2/4/8 groups,
+    # or in the 2*l/4*l/8*l groups. Promote it to a correct-group Element.
+    return Element(P.XYTZ)

@@ -1,13 +1,13 @@
 import unittest
 from binascii import hexlify
-from pure25519.basic import Zero, _ElementOfUnknownGroup
-from pure25519.basic import xform_affine_to_extended, l
+from pure25519.basic import Zero, ElementOfUnknownGroup
+from pure25519.basic import xform_affine_to_extended, l, bytes_to_unknown_group_element
 
 ORDERS = {1: "1", 2: "2", 4: "4", 8: "8",
           1*l: "1*L", 2*l: "2*L", 4*l: "4*L", 8*l: "8*L"}
 def get_order(e):
     for o in sorted(ORDERS):
-        if e._scalarmult_raw(o) == Zero:
+        if e.scalarmult(o) == Zero:
             return o
 
 class Orders(unittest.TestCase):
@@ -23,16 +23,38 @@ class Orders(unittest.TestCase):
 
     def test_orders(self):
         # all points should have an order that's listed in ORDERS. Test some
-        # specific points.
+        # specific points. For low-order points, actually find the complete
+        # subgroup and measure its size.
 
-        p0 = Zero
-        values = self.collect(p0)
+        p = Zero
+        values = self.collect(p)
         self.assertEqual(len(values), 1)
         self.assertEqual(values, set([Zero.to_bytes()]))
+        self.assertEqual(get_order(p), 1)
 
         # (0,-1) should be order 2
-        p1 = _ElementOfUnknownGroup(xform_affine_to_extended((0,-1)))
-        values = self.collect(p1)
+        p = ElementOfUnknownGroup(xform_affine_to_extended((0,-1)))
+        values = self.collect(p)
         self.assertEqual(len(values), 2)
-        self.assertEqual(values, set([Zero.to_bytes(), p1.to_bytes()]))
+        self.assertEqual(values, set([Zero.to_bytes(), p.to_bytes()]))
+        self.assertEqual(get_order(p), 2)
 
+        # (..,26) is in the right group (order L)
+        b = b"\x1a" + b"\x00"*31
+        p = bytes_to_unknown_group_element(b)
+        self.assertEqual(get_order(p), l)
+
+        # (..,35) is maybe order 2*L
+        b = b"\x23" + b"\x00"*31
+        p = bytes_to_unknown_group_element(b)
+        self.assertEqual(get_order(p), 2*l)
+
+        # (..,48) is maybe order 4*L
+        b = b"\x30" + b"\x00"*31
+        p = bytes_to_unknown_group_element(b)
+        self.assertEqual(get_order(p), 4*l)
+
+        # (..,55) is maybe order 8*L
+        b = b"\x37" + b"\x00"*31
+        p = bytes_to_unknown_group_element(b)
+        self.assertEqual(get_order(p), 8*l)

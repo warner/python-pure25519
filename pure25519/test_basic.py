@@ -1,10 +1,12 @@
 import unittest
 import random
 from binascii import hexlify
-from pure25519.basic import (q, l, B, _ElementOfUnknownGroup,
+from pure25519.basic import (q, l, B, ElementOfUnknownGroup,
+                             arbitrary_element, password_to_scalar,
+                             bytes_to_element, bytes_to_unknown_group_element,
                              _add_extended_nonunfied, add_extended, encodepoint,
                              xform_extended_to_affine, xform_affine_to_extended)
-from pure25519.basic import Scalar, Base, Element, Zero
+from pure25519.basic import Base, Element, Zero
 from pure25519.slow_basic import (slow_add_affine, scalarmult_affine,
                                   scalarmult_affine_to_extended)
 
@@ -18,15 +20,15 @@ class Basic(unittest.TestCase):
     def test_arbitrary_element(self):
         for i in range(20):
             seed = str(i).encode("ascii")
-            e = Element.arbitrary(seed)
-            e2 = Element.arbitrary(seed)
+            e = arbitrary_element(seed)
+            e2 = arbitrary_element(seed)
             self.assertElementsEqual(e, e2)
 
     def test_password_to_scalar(self):
         for i in range(20):
             seed = str(i).encode("ascii")
-            s = Scalar.from_password(seed)
-            s2 = Scalar.from_password(seed)
+            s = password_to_scalar(seed)
+            s2 = password_to_scalar(seed)
             self.assertEqual(s, s2)
 
     def test_scalarmult(self):
@@ -88,29 +90,37 @@ class Basic(unittest.TestCase):
                               encodepoint(xform_extended_to_affine(p0)))
 
         # now same thing, but with Element
-        p0 = _ElementOfUnknownGroup(xform_affine_to_extended((0,1)))
+        p0 = ElementOfUnknownGroup(xform_affine_to_extended((0,1)))
         self.assertElementsEqual(p0, Zero)
-        p2 = _ElementOfUnknownGroup(xform_affine_to_extended((0,-1)))
+        p2 = ElementOfUnknownGroup(xform_affine_to_extended((0,-1)))
         p3 = p2.add(p2)
         p4 = p3.add(p2)
         p5 = p4.add(p2)
         self.assertElementsEqual(p3, p0)
         self.assertElementsEqual(p4, p2)
         self.assertElementsEqual(p5, p0)
+        self.assertFalse(isinstance(p3, Element))
+        self.assertFalse(isinstance(p4, Element))
+        self.assertFalse(isinstance(p5, Element))
 
         # and again, with .scalarmult instead of .add
-        p3 = p2._scalarmult_raw(2) # p3=2*p2=p0
-        p4 = p2._scalarmult_raw(3) # p4=3*p2=p2
-        p5 = p2._scalarmult_raw(4) # p5=4*p2=p0
+        p3 = p2.scalarmult(2) # p3=2*p2=p0
+        p4 = p2.scalarmult(3) # p4=3*p2=p2
+        p5 = p2.scalarmult(4) # p5=4*p2=p0
         self.assertElementsEqual(p3, p0) # TODO: failing
         self.assertElementsEqual(p4, p2)
         self.assertElementsEqual(p5, p0)
+        self.assertFalse(isinstance(p3, Element))
+        self.assertFalse(isinstance(p4, Element))
+        self.assertFalse(isinstance(p5, Element))
+
+        # I don't know if there are points of order 4.
 
     def test_add(self):
         e = []
         for i in range(100):
             seed = str(i).encode("ascii")
-            s = Scalar.from_password(seed)
+            s = password_to_scalar(seed)
             e.append(Base.scalarmult(s))
         for i in range(100):
             x = random.choice(e)
@@ -125,9 +135,23 @@ class Basic(unittest.TestCase):
                 sum3 = Element(_add_extended_nonunfied(x.XYTZ, y.XYTZ))
                 self.assertElementsEqual(sum1, sum3)
 
-    def test_bad_group(self):
+    def test_bytes_to_element(self):
+        b = encodepoint((0,1)) # order 1, aka Zero
+        self.assertRaises(ValueError, bytes_to_element, b)
+        p = bytes_to_unknown_group_element(b)
+        self.assertFalse(isinstance(p, Element))
+        self.assertIs(p, Zero)
+
         b = encodepoint((0,-1%q)) # order 2
-        self.assertRaises(ValueError, Element.from_bytes, b)
+        self.assertRaises(ValueError, bytes_to_element, b)
+        p = bytes_to_unknown_group_element(b)
+        self.assertFalse(isinstance(p, Element))
+
+        # (..,26) is in the right group
+        b = b"\x1a" + b"\x00"*31
+        p = bytes_to_element(b)
+        self.assertTrue(isinstance(p, Element))
+
 
 def element_from_affine(P):
     return Element(xform_affine_to_extended(P))

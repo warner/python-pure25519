@@ -22,7 +22,7 @@ class KnownAnswerTests(unittest.TestCase):
             vk_s = B
             # the NaCl signature is R+S, which happens to be the same as ours
             msg = C
-            sig = D[:64]
+            sig = D[:64] # R+S
             # note that R depends only upon the second half of H(seed). S
             # depends upon both the first half (the exponent) and the second
             # half
@@ -36,9 +36,7 @@ class KnownAnswerTests(unittest.TestCase):
             vk2 = VerifyingKey(vk_s)
             self.failUnlessEqual(vk2, vk) # objects should compare equal
             self.failUnlessEqual(vk2.to_bytes(), vk_s)
-            newsig = sk.sign(msg)
-            sig_R,sig_S = sig[:32],sig[32:]
-            newsig_R,newsig_S = newsig[:32],newsig[32:]
+            newsig = sk.sign(msg) # R+S
             self.failUnlessEqual(hexlify(newsig), hexlify(sig)) # deterministic sigs
             self.failUnlessEqual(vk.verify(sig, msg), None) # no exception
 

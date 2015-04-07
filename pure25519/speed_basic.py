@@ -27,64 +27,6 @@ def p(name, setup_statements, statements):
                              abbrev(min(t)),
                              " ".join([abbrev(s) for s in t])))
 
-# speedup opportunities:
-#  bits-to-int (implemented with sum(2**i*bit(h,i) for in in range())
-#    0.5ms for range(b), 1.0ms for range(2*b)
-#    replace with int("%x"%bits,16)
-#    plus/minus some bitshifts
-#    maybe save 3ms here
-#  redundant xform
-#    R+Ah calc does pt_xform(scalarmult(A,h))
-#    but scalarmult = pt_unxform(xpt_mult(pt_xform(pt),e))
-#    can remove the pt_xform(pt_unxform()) pair
-#    save 1ms here
-#  v1==v2 works on untransformed values
-#    can we leave them transformed? 2ms to save
-#    probably not: Z will be different
-#    maybe there's a way to compare extended coords quickly
-#    can you add the points together and compare to 0?
-#  expmod() should be pow()
-#    reduces xrecover() from 1.9ms to 0.33
-#    reduces decodepoint from 2.35 to 0.8
-#    reduces pt_unxform from 1.03 to 0.040, via inv()
-#    reduces scalarmult from 6.67 to 5.5, via pt_unxform()
-#    probably 6.2ms just with this
-#
-# so 6.2m from expmod->pow, 2ms from bits2int
-# should improve verf from 21.8 to ~15.6
-# Actually yields 12.1ms, sweet.
-
-# sign: 14.46ms
-# verify: 21.78ms
-#  decodepoint  2.35  ms (0.48 bits2int, 1.93 xrecover, <.002 oncurve)
-#  decodepoint  2.35  ms
-#  decodeint    0.468
-#  encodepoint  0.168
-#  Hint()       1.08  (0.019 is the hash, rest is bits2int)
-#  scalarmult   6.67
-#  R+Ah:        7.71
-#   scalarmult   6.67
-#   pt_xform     0.00082
-#   pt_xform     0.00082
-#   xpt_add      0.00357
-#   pt_unxform   1.03
-#
-# xrecover: 1.90 ms
-
-# as of 5f98321, xrecover takes 326us
-#  of which 160us is the inv()
-#  and another 160us is the pow()
-#  so the next step to reduce that is to implement the
-#  extended-euclidean algorithm suggested in the comment
-#  used once in xrecover, twice in pt_unxform
-#  so 5 total, maybe 900us on the table
-
-# remaining sum():
-#  encodeint()
-#  encodepoint()
-#  publickey()
-#  signature()
-
 # pure_ed25519.sign() is doing an extra publickey(), doubles the cost
 
 def run():

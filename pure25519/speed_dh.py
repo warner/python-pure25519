@@ -34,3 +34,6 @@ def run():
     print("speed_dh")
     p("start", [S1], S2)
     p("finish", [S1, S2, S3], S4)
+
+if __name__ == "__main__":
+    run()

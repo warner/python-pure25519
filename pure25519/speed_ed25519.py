@@ -42,3 +42,6 @@ def run():
 
     p("Hint", [S5], S6)
     p("checkvalid", [S1,S2,S3,S5], S7)
+
+if __name__ == "__main__":
+    run()
